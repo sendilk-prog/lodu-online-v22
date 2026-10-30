@@ -1,0 +1,3144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LODU — Escort. Explode. Win.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --ocean-deep: #051d2e;
+    --ocean-mid: #0c3a54;
+    --gold: #e8c766;
+    --ink: #f3ecd9;
+    --muted: #9db4c2;
+    --panel-w: 300px;
+    --gap: 24px;
+    --board-side: 988px;
+    --topbar-h: 64px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ocean-deep); font-family: 'Inter', sans-serif; color: var(--ink); }
+
+  /* ---------------- SETUP SCREEN ---------------- */
+  #setup { max-width: 480px; margin: 90px auto; display: none; }
+  #setup h1 { font-family:'Cinzel',serif; letter-spacing:4px; color: var(--gold); font-size: 1.4rem; }
+  #setup .tag { color: var(--muted); font-size: 0.8rem; margin-bottom: 20px; }
+  #setup .panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(232,199,102,0.3); border-radius: 12px; padding: 20px; }
+  #setup label { display: block; margin: 10px 0 4px; font-size: 0.85rem; color: var(--muted); }
+  #setup input { width: 100%; box-sizing:border-box; padding: 11px; border-radius:8px; border:1px solid rgba(232,199,102,0.3); background:#0e1728; color:var(--ink); font-size:.95rem; }
+  #setup .name-hint { font-size: .74rem; color:#a8b9c8; margin:5px 0 10px; }
+  #setup select, #setup button { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid rgba(232,199,102,0.3); background: #0e1728; color: var(--ink); font-size: 0.95rem; }
+  #setup button { margin-top: 18px; cursor: pointer; background: linear-gradient(180deg,#f3d98a,var(--gold)); color: #201400; font-weight: 700; border: none; }
+
+  /* ---------------- STAGE ---------------- */
+  .stage { position: relative; width: 1920px; height: 1080px; margin: 0 auto; overflow: hidden; display: none;
+    background: radial-gradient(ellipse 1400px 900px at 42% 50%, var(--ocean-mid) 0%, var(--ocean-deep) 70%), linear-gradient(180deg, #030f18 0%, var(--ocean-deep) 100%); }
+  .wave-layer { position: absolute; inset: 0; opacity: 0.5; mix-blend-mode: screen; pointer-events: none; }
+
+  .topbar { position: absolute; top: 0; left: 0; right: 0; height: var(--topbar-h); z-index: 20;
+    background: linear-gradient(180deg, rgba(5,15,24,0.94), rgba(5,15,24,0.7));
+    border-bottom: 1px solid rgba(232,199,102,0.35);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
+  .brand { display:flex; align-items:baseline; gap: 10px; }
+  .brand .word { font-family:'Cinzel',serif; font-weight:700; font-size:22px; letter-spacing:5px; color: var(--gold); }
+  .brand .tag { font-size:9px; letter-spacing:2.5px; color: var(--muted); }
+  .turn-compact { display:flex; align-items:center; gap:10px; background: rgba(232,199,102,0.1);
+    border:1px solid rgba(232,199,102,0.4); border-radius:999px; padding:6px 18px; font-size:12px; letter-spacing:0.5px; }
+  .turn-compact .dot { width:8px; height:8px; border-radius:50%; }
+  .top-right { display:flex; align-items:center; gap:16px; }
+  .opp-chip { display:flex; align-items:center; gap:10px; flex-wrap: wrap; max-width: 460px; }
+  .opp-mini { display:flex; align-items:center; gap:8px; background: rgba(255,255,255,0.05);
+    border:1px solid rgba(232,199,102,0.25); border-radius:999px; padding:5px 14px 5px 5px; font-size:11px; color: var(--muted); }
+  .opp-mini .av { width:26px; height:26px; border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:13px; border:1.5px solid var(--gold); }
+  .icon-btn { width:32px; height:32px; border-radius:8px; background: rgba(255,255,255,0.06);
+    border:1px solid rgba(232,199,102,0.25); display:flex; align-items:center; justify-content:center; font-size:14px; color: var(--muted); }
+  #debugToggle.on { background: rgba(232,199,102,0.25); color: var(--gold); }
+
+  .board-frame { position: absolute; left: 304px; top: 78px; width: var(--board-side); height: var(--board-side);
+    border-radius: 16px; border: 1.5px solid rgba(232,199,102,0.4); background: rgba(5,20,32,0.3);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.3); z-index: 1; }
+  .board-svg { position:absolute; inset:0; z-index: 2; }
+  #pieceLayer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+
+  .command-panel { position: absolute; top: var(--topbar-h); right: 304px; bottom: 14px; width: var(--panel-w);
+    background: linear-gradient(180deg, rgba(8,22,34,0.97), rgba(5,15,24,0.98));
+    border: 1.5px solid rgba(232,199,102,0.4); border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.3);
+    z-index: 15; display:flex; flex-direction:column; padding: 18px 18px 16px; overflow-y:auto; }
+  .cp-section { padding: 14px 0; border-bottom: 1px solid rgba(232,199,102,0.16); }
+  .cp-section:first-child { padding-top: 0; }
+  .cp-section:last-child { border-bottom:none; }
+  .cp-player { display:flex; align-items:center; gap:14px; }
+  .cp-player .portrait { width:88px; height:88px; flex:0 0 88px; border-radius:9px; display:block;
+    overflow:hidden; border:2px solid var(--gold); box-shadow: 0 0 0 2px rgba(232,199,102,0.12), 0 3px 10px rgba(0,0,0,0.4);
+    background:linear-gradient(155deg,#234255,#091724); }
+  .cp-player .portrait img { width:100%; height:100%; object-fit:cover; display:block; }
+  .cp-player .id b { font-family:'Cinzel',serif; font-size:16px; letter-spacing:0.5px; display:block; }
+  .cp-player .id span { font-size:11px; color: var(--muted); }
+  .cp-your-turn { margin: 12px 0 0; text-align:center; font-family:'Cinzel',serif; font-size:12px; letter-spacing:3px;
+    color: var(--gold); background: rgba(232,199,102,0.12); border:1px solid rgba(232,199,102,0.45); border-radius:6px; padding:7px 0;
+    box-shadow: inset 0 0 12px rgba(232,199,102,0.12); animation: yourTurnPulse 2.6s ease-in-out infinite; }
+  @keyframes yourTurnPulse {
+    0%,100% { box-shadow: inset 0 0 8px rgba(232,199,102,0.1); }
+    50% { box-shadow: inset 0 0 16px rgba(232,199,102,0.25); }
+  }
+
+  .die-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; padding-top:8px; position: relative; }
+  .die-wrap.extra-turn-flash::before {
+    content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    width: 150px; height: 150px; border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(232,199,102,0.6);
+    animation: extraTurnPulse 0.9s ease-out;
+    pointer-events: none;
+  }
+  @keyframes extraTurnPulse {
+    0% { box-shadow: 0 0 0 0 rgba(232,199,102,0.55); }
+    100% { box-shadow: 0 0 0 26px rgba(232,199,102,0); }
+  }
+  .die-caption { font-size:11px; color: var(--muted); letter-spacing:0.5px; text-align:center; min-height: 2.4em; }
+  .die-caption b { color: var(--gold); }
+  #dieSvg { transition: transform 0.28s cubic-bezier(.34,1.56,.64,1); }
+  #dieSvg.settle { animation: dieSettle 0.4s ease-out; }
+  @keyframes dieSettle { 0% { transform: scale(0.78); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+  .roll-btn { width:100%; padding:12px 0; border-radius:10px; border:none; cursor:pointer;
+    background: linear-gradient(180deg,#f3d98a,var(--gold)); color:#2a2015;
+    font-weight:700; font-size:13px; letter-spacing:1.5px; text-transform:uppercase; box-shadow:0 4px 12px rgba(0,0,0,0.4); }
+  .roll-btn:disabled { background:#3a3a3a; color:#888; cursor:not-allowed; box-shadow:none; }
+
+  .kam-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .kam-title { font-family:'Cinzel',serif; font-size:12px; letter-spacing:2px; color:#ff9b8a; }
+  .kam-badge { font-size:10px; padding:2px 9px; border-radius:999px; background: rgba(255,107,91,0.18);
+    border:1px solid #ff6b5b; color:#ffd9d9; letter-spacing:0.5px; }
+  .kam-badge.spent { background: rgba(120,120,120,0.15); border-color:#666; color:#999; }
+  .kam-note { font-size:10.5px; color: var(--muted); margin-bottom:10px; line-height:1.5; }
+  .kamikaze-btn { width:100%; padding:11px 0; border-radius:10px; border:1.5px solid #ff6b5b; cursor:pointer;
+    background: linear-gradient(180deg,#7a1f1f,#4a0f0f); color:#ffd9d9;
+    font-weight:700; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; }
+  .kamikaze-btn:disabled { border-color:#555; background:#2a2a2a; color:#777; cursor:not-allowed; }
+
+  .br-title, .ps-title { font-family:'Cinzel',serif; font-size:12px; letter-spacing:2px; color: var(--gold); margin-bottom:10px; }
+  .br-entry { font-size:12px; padding:7px 10px; margin-bottom:6px; background: rgba(255,255,255,0.04);
+    border-left:2px solid rgba(232,199,102,0.4); border-radius:4px; color: var(--ink); line-height:1.4; }
+  .br-entry.hi { border-left-color: var(--gold); color: var(--gold); font-weight:600; }
+  .br-entry.capture { border-left-color: #ff6b5b; }
+  .br-entry .t { display:block; font-size:9px; color: var(--muted); letter-spacing:0.5px; margin-top:2px; }
+  .br-empty { font-size: 11px; color: var(--muted); font-style: italic; }
+
+  .ps-row { display:flex; align-items:center; justify-content:space-between; font-size:11.5px; padding:5px 0; color: var(--muted); }
+  .ps-pill { font-size:10px; padding:3px 10px; border-radius:999px; font-weight:600; letter-spacing:0.4px; }
+  .ps-pill.ready { background: rgba(120,220,160,0.15); color:#8fe8b0; border:1px solid rgba(120,220,160,0.4); }
+  .ps-pill.used { background: rgba(255,180,90,0.15); color:#ffce8a; border:1px solid rgba(255,180,90,0.4); }
+  .ps-pill.spent { background: rgba(255,107,91,0.15); color:#ffb0a4; border:1px solid rgba(255,107,91,0.4); }
+  .ps-pill.home { background: rgba(120,180,255,0.15); color:#a9cdff; border:1px solid rgba(120,180,255,0.4); }
+
+  /* ---------------- PIECES ---------------- */
+  .piece { position: absolute; width: 46px; height: 46px; transform: translate(-50%,-50%); cursor: default;
+    pointer-events: auto;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)); transition: left 0.22s ease, top 0.22s ease; }
+  .piece.selectable { cursor: pointer; animation: piecePulse 1.1s infinite; }
+  @keyframes piecePulse { 0%,100% { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)) drop-shadow(0 0 0px #e8c766); }
+    50% { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)) drop-shadow(0 0 9px #e8c766); } }
+  .piece-home { animation: pieceHomeGlow 2.4s ease-in-out infinite; }
+  @keyframes pieceHomeGlow {
+    0%,100% { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 3px #fff3d0); }
+    50% { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 10px #fff3d0); }
+  }
+
+  /* ---------------- DEBUG ---------------- */
+  .debug-label { display: none; font-size: 8px; fill: #ff6b5b; }
+  body.debug-on .debug-label { display: block; }
+  body.debug-on .seam-marker circle { opacity: 0.9 !important; }
+
+  /* ---------------- VICTORY ---------------- */
+  #victoryOverlay { position: fixed; inset: 0; background: rgba(3,8,14,0.92); display: none;
+    align-items: center; justify-content: center; flex-direction: column; z-index: 100; }
+  #victoryOverlay .crest { width: 110px; height: 110px; border-radius: 50%; display:flex; align-items:center; justify-content:center;
+    font-size: 52px; border: 3px solid var(--gold); margin-bottom: 18px; box-shadow: 0 0 40px rgba(232,199,102,0.5); }
+  #victoryOverlay h2 { font-family:'Cinzel',serif; font-size: 2.2rem; color: var(--gold); margin: 0 0 6px; letter-spacing: 2px; }
+  #victoryOverlay p { color: var(--muted); margin: 0 0 24px; }
+  #victoryOverlay button { padding: 12px 30px; border-radius: 10px; border: none; background: linear-gradient(180deg,#f3d98a,var(--gold));
+    font-weight: 700; letter-spacing: 1px; cursor: pointer; font-size: 13px; text-transform: uppercase; }
+
+  /* ---------------- KAMIKAZE CONFIRM ---------------- */
+  #kamikazeConfirm { position: fixed; inset: 0; background: rgba(3,8,14,0.85); display: none;
+    align-items: center; justify-content: center; z-index: 100; }
+  #kamikazeConfirm .box { width: 440px; background: #0e1728; border: 2px solid #ff6b5b; border-radius: 14px; padding: 26px; text-align: center; }
+  #kamikazeConfirm h3 { color: #ff9b8a; font-family:'Cinzel',serif; letter-spacing:2px; margin-top:0; }
+  #kamikazeConfirm p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  #kamikazeConfirm .footprint { display:flex; justify-content:center; gap:6px; margin: 16px 0; flex-wrap: wrap; }
+  #kamikazeConfirm .footprint span { width: 34px; height: 34px; border-radius: 6px; background: rgba(255,107,91,0.15);
+    border: 1px solid #ff6b5b; display:flex; align-items:center; justify-content:center; font-size: 12px; color: #ffd9d9; }
+  #kamikazeConfirm .btns { display:flex; gap: 12px; margin-top: 10px; }
+  #kamikazeConfirm button { flex: 1; padding: 11px 0; border-radius: 8px; font-weight: 700; letter-spacing: 1px; cursor: pointer; font-size: 12px; text-transform: uppercase; }
+  #kamikazeConfirm .cancel { background: #2a2a2a; color: #ccc; border: 1px solid #555; }
+  #kamikazeConfirm .confirm { background: linear-gradient(180deg,#c73a2a,#7a1f1f); color: #fff; border: 1px solid #ff6b5b; }
+
+/* =========================================================================
+   PHASE G — CINEMATIC SPLASH + REDESIGNED MAIN MENU
+   Presentation-only. Board/Rules/gameplay remain untouched.
+   ========================================================================= */
+#splash {
+  position: fixed; inset: 0; z-index: 200; background:#02070c;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+#splashVideo {
+  width:100%; height:100%; object-fit:cover; display:block;
+  background:#02070c;
+}
+#splash::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.16),transparent 45%,rgba(0,0,0,.45));
+}
+#splashSkip {
+  position:absolute; bottom:30px; right:34px; z-index:201;
+  font-family:'Inter',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:2px; color:rgba(255,255,255,.82);
+  background:rgba(3,12,20,.55); border:1px solid rgba(232,199,102,.55);
+  border-radius:999px; padding:10px 18px; cursor:pointer;
+  backdrop-filter:blur(8px); transition:.2s ease;
+}
+#splashSkip:hover { background:rgba(3,12,20,.82); color:#fff; transform:translateY(-1px); }
+#introGate { position:absolute; inset:0; z-index:202; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:17px; background:radial-gradient(circle at center,rgba(8,29,46,.78),rgba(2,7,12,.94)); color:#f8e8bd; text-align:center; }
+#introGate h2 { font-family:Georgia,serif; font-size:clamp(32px,5vw,68px); margin:0; letter-spacing:5px; color:#e9c56d; text-shadow:0 3px 22px #000; }
+#introGate p { font:13px Inter,sans-serif; letter-spacing:2px; margin:0 16px 10px; color:#d5d7dc; }
+#introEnter { padding:16px 44px; font:bold 15px Inter,sans-serif; letter-spacing:2px; border:2px solid #e8c766; border-radius:50px; color:#19160e; background:linear-gradient(#ffe9a6,#c79835); cursor:pointer; box-shadow:0 5px 30px #000; }
+#introEnter:focus-visible {outline:3px solid white;outline-offset:4px;}
+#introAudioNote {font:11px Inter,sans-serif;color:#bdc9d4;}
+.ship-number { position:absolute; right:-4px; top:-5px; z-index:2; display:flex; align-items:center; justify-content:center; width:20px; height:20px; border:2px solid #f7df9a; border-radius:50%; color:#201609; background:linear-gradient(145deg,#fff8da,#d6a73e); box-shadow:0 1px 5px #000; font:900 12px Arial,sans-serif; pointer-events:none; }
+.piece { overflow:visible; }
+#splashStartHint {
+  position:absolute; left:50%; bottom:30px; transform:translateX(-50%);
+  z-index:201; display:none; padding:9px 16px; border-radius:999px;
+  background:rgba(3,12,20,.68); border:1px solid rgba(232,199,102,.4);
+  color:rgba(255,255,255,.85); font-size:11px; letter-spacing:2px;
+  backdrop-filter:blur(8px); pointer-events:none;
+}
+
+#mainMenu {
+  position:fixed; inset:0; z-index:150; display:none; overflow:hidden;
+  font-family:'Inter',sans-serif; color:var(--ink); background:#02080e;
+}
+.menu-canvas {
+  position:absolute; top:0; left:50%; width:1920px; height:1080px;
+  transform-origin:top left; overflow:hidden;
+  background:#061522;
+}
+.menu-bg { position:absolute; inset:0; z-index:1; overflow:hidden; }
+.menu-bg-image {
+  position:absolute; inset:-18px; width:calc(100% + 36px); height:calc(100% + 36px);
+  object-fit:cover; filter:saturate(.78) contrast(1.08);
+}
+.menu-bg::after {
+  content:''; position:absolute; inset:0;
+  background:
+    linear-gradient(90deg,rgba(2,8,14,.88) 0%,rgba(2,8,14,.36) 24%,rgba(2,8,14,.25) 50%,rgba(2,8,14,.42) 76%,rgba(2,8,14,.9) 100%),
+    linear-gradient(180deg,rgba(2,8,14,.58) 0%,rgba(2,8,14,.12) 34%,rgba(2,8,14,.72) 100%);
+}
+.menu-bg::before {
+  content:''; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:radial-gradient(ellipse 850px 470px at 50% 38%,rgba(5,24,39,.04),rgba(2,8,14,.72) 100%);
+}
+.menu-grid {
+  position:absolute; inset:0; z-index:3; opacity:.16; pointer-events:none;
+  background-image:linear-gradient(rgba(232,199,102,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(232,199,102,.12) 1px,transparent 1px);
+  background-size:48px 48px; mask-image:linear-gradient(180deg,transparent 0%,black 18%,black 75%,transparent 100%);
+}
+.menu-topline {
+  position:absolute; top:28px; left:50%; transform:translateX(-50%); z-index:8;
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:5px; color:rgba(245,222,145,.72);
+  white-space:nowrap;
+}
+.menu-topline::before,.menu-topline::after {
+  content:''; position:absolute; top:50%; width:150px; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(232,199,102,.55));
+}
+.menu-topline::before { right:calc(100% + 20px); }
+.menu-topline::after { left:calc(100% + 20px); transform:scaleX(-1); }
+
+.menu-center {
+  position:absolute; left:50%; top:41%; transform:translate(-50%,-50%); z-index:20;
+  width:620px; text-align:center; display:flex; flex-direction:column; align-items:center;
+}
+.logo-lockup { display:flex; flex-direction:column; align-items:center; }
+.menu-logo-word {
+  font-family:'Cinzel',serif; font-weight:700; font-size:122px; line-height:.9;
+  letter-spacing:14px; margin-right:-14px;
+  background:linear-gradient(180deg,#fff3b0 0%,#e8c766 34%,#a96c16 72%,#f3d98a 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 7px 0 rgba(0,0,0,.55)) drop-shadow(0 0 32px rgba(232,199,102,.3));
+}
+.menu-die {
+  display:inline-flex; width:78px; height:78px; margin:0 3px; transform:translateY(-7px);
+  align-items:center; justify-content:center; vertical-align:middle;
+  border:3px solid #b97b1b; border-radius:13px;
+  background:linear-gradient(145deg,#fff7d0,#d7ae4d 58%,#81500d);
+  color:#17130c; font-size:43px; letter-spacing:0; line-height:1;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 5px 0 rgba(0,0,0,.42);
+}
+.menu-logo-tag {
+  margin-top:17px; font-family:'Cinzel',serif; font-size:15px; font-weight:600;
+  letter-spacing:8px; color:#f3ecd9; text-shadow:0 2px 8px #000;
+}
+.menu-rule { width:390px; height:1px; margin:24px 0 18px; background:linear-gradient(90deg,transparent,rgba(232,199,102,.7),transparent); }
+.menu-pitch {
+  font-size:12px; letter-spacing:3px; text-transform:uppercase; color:rgba(235,239,240,.72);
+  margin-bottom:22px;
+}
+#playLoduBtn {
+  min-width:310px; padding:18px 54px; border-radius:7px; cursor:pointer;
+  border:1px solid #f6d77e;
+  background:linear-gradient(180deg,#ffe99c 0%,#e9c35f 48%,#b47a18 100%);
+  color:#211506; font-family:'Cinzel',serif; font-weight:700; font-size:19px;
+  letter-spacing:4px; box-shadow:0 12px 30px rgba(0,0,0,.45),inset 0 1px 0 #fff7ce;
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+#playLoduBtn:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(0,0,0,.55),0 0 30px rgba(232,199,102,.2),inset 0 1px 0 #fff7ce; }
+.menu-sub { margin-top:13px; font-size:10px; letter-spacing:2.5px; color:rgba(210,222,228,.68); text-transform:uppercase; }
+
+.commander-slot {
+  position:absolute; bottom:-4px; z-index:12; width:360px; height:670px;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+}
+.slot-boris { left:-2%; }
+.slot-eagle { left:17%; }
+.slot-long { right:17%; }
+.slot-zari { right:-2%; }
+.commander-art {
+  position:absolute; bottom:0; width:auto; object-fit:contain; z-index:5;
+  filter:drop-shadow(0 26px 30px rgba(0,0,0,.75));
+  transform-origin:center bottom;
+}
+.slot-boris .commander-art { height:585px; }
+.slot-eagle .commander-art { height:650px; }
+.slot-long .commander-art { height:555px; }
+.slot-zari .commander-art { height:600px; }
+.slot-boris .commander-art { transform:translateX(18px); }
+.slot-eagle .commander-art { transform:translateX(-5px); }
+.slot-long .commander-art { transform:translateX(10px); }
+.slot-zari .commander-art { transform:translateX(-18px); }
+@keyframes idleBobG { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+.slot-boris .commander-art.idle-anim { animation:idleBobGB 5.8s ease-in-out infinite; }
+.slot-eagle .commander-art.idle-anim { animation:idleBobGE 6.1s ease-in-out .4s infinite; }
+.slot-long .commander-art.idle-anim { animation:idleBobGL 5.5s ease-in-out .8s infinite; }
+.slot-zari .commander-art.idle-anim { animation:idleBobGZ 6s ease-in-out 1.1s infinite; }
+@keyframes idleBobGB {0%,100%{transform:translateX(18px) translateY(0)}50%{transform:translateX(18px) translateY(-7px)}}
+@keyframes idleBobGE {0%,100%{transform:translateX(-5px) translateY(0)}50%{transform:translateX(-5px) translateY(-7px)}}
+@keyframes idleBobGL {0%,100%{transform:translateX(10px) translateY(0)}50%{transform:translateX(10px) translateY(-7px)}}
+@keyframes idleBobGZ {0%,100%{transform:translateX(-18px) translateY(0)}50%{transform:translateX(-18px) translateY(-7px)}}
+.commander-glow {
+  position:absolute; bottom:20px; width:270px; height:90px; border-radius:50%; z-index:2;
+  filter:blur(32px); opacity:.36;
+}
+.commander-flag { position:absolute; top:84px; z-index:3; width:4px; height:150px; opacity:.78; border-radius:2px; box-shadow:0 0 14px currentColor; }
+.commander-flag::after { content:''; position:absolute; left:4px; top:0; width:62px; height:34px; background:inherit; clip-path:polygon(0 0,100% 12%,82% 50%,100% 88%,0 100%); opacity:.88; animation:flagWaveG 2.4s ease-in-out infinite; transform-origin:left center; }
+@keyframes flagWaveG {0%,100%{transform:skewY(3deg)}50%{transform:skewY(-5deg) scaleX(.94)}}
+.slot-boris .commander-flag{left:105px}.slot-eagle .commander-flag{right:105px}.slot-long .commander-flag{left:105px}.slot-zari .commander-flag{right:105px}
+.commander-plate {
+  position:absolute; bottom:14px; z-index:15; min-width:175px; text-align:center;
+  padding:8px 18px 9px; background:rgba(3,11,18,.82); border:1px solid rgba(232,199,102,.5);
+  box-shadow:0 8px 22px rgba(0,0,0,.35); backdrop-filter:blur(8px);
+  clip-path:polygon(7% 0,93% 0,100% 22%,100% 78%,93% 100%,7% 100%,0 78%,0 22%);
+}
+.commander-plate::before { content:''; position:absolute; inset:3px; border:1px solid rgba(255,255,255,.06); pointer-events:none; }
+.commander-plate b { display:block; font-family:'Cinzel',serif; font-size:14px; letter-spacing:2px; color:#f1d477; }
+.commander-plate span { display:block; margin-top:3px; font-size:9px; letter-spacing:3px; color:#9db4c2; }
+
+.faction-rail {
+  position:absolute; top:84px; z-index:14; width:245px; padding:14px 16px;
+  background:linear-gradient(180deg,rgba(4,15,24,.82),rgba(4,15,24,.52));
+  border:1px solid rgba(232,199,102,.22); backdrop-filter:blur(8px);
+}
+.faction-rail.left{left:38px;border-left:3px solid #6b46c1}.faction-rail.right{right:38px;border-right:3px solid #d97706;text-align:right}
+.faction-rail .kicker{font-size:8px;letter-spacing:3px;color:#8ca7b6;text-transform:uppercase}.faction-rail b{display:block;font-family:'Cinzel',serif;font-size:17px;color:#f1d477;margin-top:3px}.faction-rail span{font-size:9px;letter-spacing:2px;color:#b9c8d0}
+.menu-footer {
+  position:absolute; left:50%; bottom:22px; transform:translateX(-50%); z-index:20;
+  font-size:9px; letter-spacing:3px; color:rgba(235,239,240,.48); text-transform:uppercase; white-space:nowrap;
+}
+.menu-footer strong{color:rgba(232,199,102,.72)}
+
+@keyframes menuDust{0%{transform:translateY(0);opacity:0}15%{opacity:.8}100%{transform:translateY(-180px);opacity:0}}
+
+/* PHASE 2I: exact approved artwork, interactive accessible play hotspot. */
+.approved-menu{width:1920px;height:1080px;overflow:hidden;background:#051827;}
+.approved-home-art{display:block;width:100%;height:100%;object-fit:fill;pointer-events:none;}
+.approved-play-hotspot{position:absolute!important;left:32.5%!important;top:77.5%!important;width:35%!important;height:16.5%!important;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer!important;transform:none!important;z-index:30!important;border-radius:24px!important;padding:0!important;}
+.approved-play-hotspot span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+.approved-play-hotspot:hover{box-shadow:inset 0 0 24px rgba(255,220,110,.26)!important;}
+.approved-play-hotspot:focus-visible{outline:5px solid #fff0a0!important;outline-offset:-7px!important;}
+
+  /* Phase 2I Stage 4 — interactive fleet cards (legal moves only) */
+  .fleet-picker { display:grid; grid-template-columns:1fr; gap:7px; }
+  .fleet-card { width:100%; display:flex; align-items:center; gap:11px; text-align:left; padding:8px 10px;
+    border:1px solid rgba(232,199,102,.20); border-radius:9px; background:rgba(255,255,255,.035);
+    color:#d5d9d9; font-family:Inter,sans-serif; }
+  .fleet-card:disabled { opacity:.62; cursor:default; }
+  .fleet-card-legal { cursor:pointer; border-color:rgba(232,199,102,.82); background:linear-gradient(90deg,rgba(232,199,102,.19),rgba(232,199,102,.06));
+    box-shadow:inset 0 0 14px rgba(232,199,102,.07); }
+  .fleet-card-legal:hover { background:rgba(232,199,102,.25); }
+  .fleet-card-icon { width:35px;height:35px;border:1.5px solid; border-radius:8px;display:grid;place-items:center;font-size:20px;flex-shrink:0; }
+  .fleet-card-copy { display:flex;flex-direction:column;gap:4px; flex:1; }
+  .fleet-card-copy strong { font-size:11px;letter-spacing:1px; }
+  .fleet-card-copy small { font-size:9px;color:#a7b7c1;letter-spacing:.6px; }
+  .fleet-card-action { font-size:9px;letter-spacing:.6px;color:#f0d27a; }
+  #gameMenuBtn { cursor:pointer; font-family:Inter,sans-serif; }
+
+
+/* Phase 2I Stage 5: nautical visual skin; engine and movement coordinates unchanged. */
+.stage {
+  background:
+    radial-gradient(ellipse 540px 400px at 43% 45%, rgba(28,113,145,.26), transparent 95%),
+    repeating-radial-gradient(ellipse at 32% 62%, transparent 0 24px, rgba(132,208,224,.025) 26px 28px, transparent 30px 59px),
+    linear-gradient(130deg,#07121b 0%,#0a3449 36%,#052334 70%,#03111c 100%);
+}
+.board-frame {
+  border: 8px ridge #987139;
+  border-radius: 17px;
+  background: radial-gradient(ellipse at center,rgba(7,55,76,.45),rgba(2,13,24,.7));
+  box-shadow: 0 0 0 3px #2d1b0c,0 0 0 6px #d4ab55,0 22px 48px #000b, inset 0 0 36px #030a13;
+}
+.command-panel {
+  background:linear-gradient(135deg,rgba(17,37,51,.98),rgba(3,12,22,.99));
+  border:2px solid #b9914a;
+  box-shadow:0 0 0 3px #291b0d,0 18px 45px #000a,inset 0 0 0 1px #f5d88b44;
+}
+
+
+/* Stage 6: SINGLE LIVE BATTLEFIELD. The art is only a texture layer;
+   every ship/missile is drawn by renderPieces() from match state. */
+.stage {
+  background-image:
+    linear-gradient(125deg,rgba(1,12,25,.76),rgba(2,24,37,.58) 45%,rgba(1,10,23,.78)),
+    url('assets/ocean_from_approved_art.jpg');
+  background-size: cover, 380px 500px;
+  background-repeat: no-repeat, repeat;
+}
+.board-frame {
+  background: linear-gradient(145deg,rgba(9,37,49,.94),rgba(4,18,28,.96));
+  border: 9px ridge #bb934d;
+  box-shadow:0 0 0 3px #241609,0 0 0 6px #e2bb70,0 22px 58px #000c,inset 0 0 44px #00101a;
+}
+.board-svg {filter: drop-shadow(0 6px 9px #0008);}
+.command-panel {border:3px ridge #c7a159;box-shadow:0 0 0 3px #271708,0 20px 55px #000c;}
+#pieceLayer .piece {filter:drop-shadow(0 4px 4px #000b);}
+
+
+/* Stage 7: purely presentational naval battle effects; no engine mutations. */
+#battleFxLayer { position:absolute; inset:0; z-index:8; pointer-events:none; overflow:hidden; }
+.battle-wake { position:absolute; width:24px; height:24px; border:2px solid rgba(174,239,255,.78); border-radius:50%; transform:translate(-50%,-50%) scale(.25); animation:wakeSpread .72s ease-out forwards; box-shadow:0 0 13px rgba(115,220,255,.45); }
+.battle-wake.missile { border-color:rgba(255,193,88,.85); box-shadow:0 0 15px rgba(255,129,48,.65); }
+@keyframes wakeSpread { 0%{opacity:.92;transform:translate(-50%,-50%) scale(.25)} 100%{opacity:0;transform:translate(-50%,-50%) scale(2.3)} }
+.battle-impact { position:absolute; width:30px; height:30px; border:4px solid #ffd989; border-radius:50%; transform:translate(-50%,-50%); animation:impactBurst .62s ease-out forwards; filter:drop-shadow(0 0 14px #ff8844); }
+@keyframes impactBurst {0%{opacity:1;scale:.25} 65%{opacity:.8} 100%{opacity:0;scale:4.4}}
+.battle-spark {position:absolute;width:7px;height:7px;border-radius:50%;background:#ffe6a5;box-shadow:0 0 9px #ff7d32;animation:sparkFly .65s ease-out forwards;transform:translate(-50%,-50%);}
+@keyframes sparkFly {to{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.15)}}
+.board-frame.battle-rumble {animation:boardRumble .38s ease-out;}
+@keyframes boardRumble {0%,100%{transform:translate(0,0)} 20%{transform:translate(3px,-2px)} 40%{transform:translate(-3px,2px)} 60%{transform:translate(2px,1px)} 80%{transform:translate(-1px,-2px)}}
+@media (prefers-reduced-motion: reduce) {.battle-wake,.battle-impact,.battle-spark,.board-frame.battle-rumble {animation:none!important;display:none!important}}
+
+/* Stage 8: detailed naval diorama, independent of game state. */
+.board-frame { border:10px ridge #d5ab5f; box-shadow:0 0 0 3px #201207,0 0 0 7px #aa7b37,0 24px 55px #000d,inset 0 0 36px #00141c; }
+.command-panel { background:linear-gradient(180deg,#13293a 0%,#081724 45%,#050e17 100%); border:4px ridge #b98a43; box-shadow:0 0 0 3px #261508,0 22px 52px #000c,inset 0 0 0 1px #f1c77b44; }
+.cp-section { border-bottom-color:rgba(216,171,96,.32); }
+.cp-player { background:linear-gradient(120deg,rgba(165,110,40,.17),rgba(10,28,41,.18)); border:1px solid #b98a4366; border-radius:10px; padding:10px!important; }
+.roll-btn { background:linear-gradient(180deg,#f7e1a3,#d7a94c 54%,#a97727); border:2px solid #f3d58b; box-shadow:0 4px 0 #503010,0 9px 19px #0009; }
+.roll-btn:not(:disabled):hover {filter:brightness(1.12)}
+.fleet-picker .fleet-card { border-color:#bc8d49; }
+.harbour-set {filter:drop-shadow(0 4px 8px #000a)}
+
+/* STAGE 10 — nautical stone board and gilded command console */
+.board-frame { border: 6px ridge #b88c48; border-radius: 9px;
+  background: radial-gradient(circle at 50% 50%, #0d4256 0%, #072a40 70%, #051522 100%);
+  box-shadow: 0 0 0 5px #382516, 0 0 0 8px #bc944e, 0 18px 45px #000c,
+              inset 0 0 32px #0009; }
+.command-panel { border: 3px ridge #c89a4b; border-radius: 8px;
+  background: linear-gradient(100deg,#041321,#0a2a3e 47%,#061625);
+  box-shadow: 0 0 0 3px #3b2818, 0 12px 35px #000a, inset 0 0 25px #0007; }
+.command-panel .cp-section { border-bottom-color: #b78a4870; }
+.command-panel .br-title, .command-panel .ps-title { color: #f0ce80; }
+.board-svg .stone-tile, .board-svg .home-tile { shape-rendering:geometricPrecision; }
+
+/* Stage 13 — unified nautical art direction, presentation-only */
+.stage { background: radial-gradient(ellipse 850px 680px at 39% 53%, #21627a 0%, #0b344d 54%, #041522 100%); }
+.board-frame { border: 9px ridge #8d6533; border-radius: 20px; background: radial-gradient(circle at 45% 45%,rgba(24,89,107,.46),rgba(2,25,40,.9)); box-shadow: 0 0 0 4px #29190f, 0 0 0 7px #b78b4c, 0 24px 48px #000b, inset 0 0 35px #0008; }
+.command-panel { border: 3px solid #b38a4f; border-radius: 12px; background: linear-gradient(115deg,rgba(255,216,139,.06),transparent 20%), repeating-linear-gradient(0deg,rgba(255,222,147,.015) 0px,rgba(255,222,147,.015) 2px,transparent 2px,transparent 7px),linear-gradient(160deg,#182d3a,#071827 48%,#101a25); box-shadow: inset 0 0 0 3px #3d2918,inset 0 0 0 5px #8d6737,0 20px 40px #0009; }
+.cp-section { border-bottom-color:rgba(233,192,114,.32); }
+.cp-player { background:linear-gradient(110deg,rgba(232,199,102,.13),transparent); padding:12px 10px; border:1px solid rgba(232,199,102,.35); border-radius:9px; }
+.roll-btn { border:2px solid #fff0bd; box-shadow:0 0 0 2px #62421c,0 5px 15px #0009; }
+.topbar { background:linear-gradient(180deg,#21190f,#091c29 78%); border-bottom:3px solid #a87e46; }
+
+/* Stage 13 refined: compact command console, full-face commander portraits, dimensional ivory die. */
+.command-panel { padding: 12px 13px 10px; overflow-y: hidden; gap:0; }
+.command-panel .cp-section { padding: 8px 0; flex-shrink: 0; }
+.command-panel .cp-player { padding-top: 0; gap: 11px; }
+.command-panel .cp-player .portrait { width: 86px; height:86px; flex: 0 0 86px; border-radius: 9px; }
+.command-panel .cp-player .portrait img { width:100%; height:100%; object-fit:cover; object-position:center; }
+.command-panel .cp-your-turn { margin: 0 0 4px !important; padding: 4px 0; font-size:11px; }
+.command-panel .die-wrap { gap: 4px; padding-top: 3px; }
+.command-panel #dieSvg { width: 106px; height:106px; filter:drop-shadow(4px 7px 6px rgba(0,0,0,.52)); }
+.command-panel .die-caption { min-height: 1.3em; font-size:10px; }
+.command-panel .roll-btn { padding: 9px 0; }
+.command-panel .br-title,.command-panel .ps-title { margin-bottom:6px; }
+.command-panel .fleet-picker { gap:4px; }
+.command-panel .fleet-card { padding:5px 8px; gap:8px; }
+.command-panel .fleet-card-icon { width:30px; height:30px; font-size:17px; }
+.command-panel .fleet-card-copy { gap:2px; }
+.command-panel .kam-header { margin-bottom:4px; }
+.command-panel .kam-note { margin-bottom:6px; line-height:1.3; font-size:10px; }
+.command-panel .kamikaze-btn { padding:8px 0; }
+.command-panel #battleReport { max-height: 76px; overflow-y:auto; scrollbar-width:thin; }
+.command-panel .br-entry { font-size:10px; padding:4px 6px; margin-bottom:3px; line-height:1.25; }
+.command-panel .ps-row { padding:3px 0; }
+.command-panel .ps-pill { padding:2px 7px; }
+
+
+
+/* TURN INDICATOR — faction-tinted commander profile, two pulses only on turn changes. */
+.command-panel .cp-player {
+  position:relative; isolation:isolate;
+  background:linear-gradient(115deg, var(--turn-tint, rgba(107,70,193,.65)), var(--turn-deep, #281846));
+  border:2px solid var(--turn-colour, #6b46c1);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 3px 10px rgba(0,0,0,.22);
+  transition:background-color .2s,border-color .2s;
+}
+.command-panel .cp-player.turn-pulse {
+  animation:commanderTurnPulse .6s ease-in-out 0s 2;
+}
+@keyframes commanderTurnPulse {
+  0%,100% {box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 3px 10px rgba(0,0,0,.22);filter:brightness(1)}
+  50% {box-shadow:inset 0 0 0 2px rgba(255,242,191,.75),0 0 22px 5px var(--turn-colour),0 3px 10px rgba(0,0,0,.22);filter:brightness(1.38)}
+}
+.command-panel .cp-player .id b,.command-panel .cp-player .id span {color:#fff7e8;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+@media (prefers-reduced-motion:reduce) {.command-panel .cp-player.turn-pulse {animation:none}}
+
+/* QUICK RULES — presentation only; no engine state or board geometry changes. */
+.rules-tab {position:absolute;left:93px;top:468px;z-index:22;width:116px;height:114px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;cursor:pointer;background:linear-gradient(145deg,#17374b,#071725 70%);border:3px ridge #d1a459;border-radius:13px;box-shadow:0 0 0 3px #332213,0 12px 24px #0009;color:#e9c77f;font:700 17px 'Cinzel',serif;letter-spacing:1.5px}
+.rules-tab:hover,.rules-tab:focus-visible {filter:brightness(1.22);outline:2px solid #f7dca0;outline-offset:4px}
+.rules-tab .book {font-size:39px;line-height:1}
+#rulesOverlay {position:absolute;inset:0;z-index:90;background:rgba(1,9,16,.79);display:none;align-items:center;justify-content:center;}
+#rulesOverlay.open {display:flex}
+.rules-modal {width:1650px;height:944px;display:flex;flex-direction:column;background:radial-gradient(ellipse at 40% 20%,#12354a,#071a2a 60%,#061421);border:5px ridge #d2a45d;border-radius:21px;box-shadow:0 0 0 5px #21180f,0 0 0 8px #a47a3d,0 30px 80px #000f;position:relative;overflow:hidden}
+.rules-modal:before {content:'';position:absolute;inset:11px;border:1px solid #e8c57a75;border-radius:10px;pointer-events:none}
+.rules-head {flex:0 0 126px;display:flex;align-items:center;justify-content:center;gap:36px;border-bottom:2px solid #ae8549;background:linear-gradient(180deg,#153349,#0a1c2d);position:relative}
+.rules-head .rules-logo {font:700 62px 'Cinzel',serif;color:#f2c779;letter-spacing:5px;text-shadow:0 3px 2px #3b2008}
+.rules-head .rules-heading {font:500 40px 'Cinzel',serif;letter-spacing:5px;color:#f7e4c0}
+.rules-head .rules-sub {font:14px 'Inter',sans-serif;letter-spacing:1.7px;text-align:center;color:#b5c5cf;margin-top:5px}
+.rules-close {position:absolute;right:28px;top:30px;width:62px;height:62px;border-radius:50%;border:3px solid #c99c56;color:#ffdc92;background:linear-gradient(145deg,#143447,#07131e);font-size:38px;cursor:pointer;line-height:1}
+.rules-close:hover,.rules-close:focus-visible {background:#31556a;outline:2px solid #f7dca0}
+.rules-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:1fr 1fr;flex:1;min-height:0;padding:0 12px 13px}
+.rule-card {position:relative;min-width:0;min-height:0;padding:19px 22px 12px;border-right:1px solid #aa8045a0;border-bottom:1px solid #aa8045a0;display:flex;flex-direction:column;gap:11px}
+.rule-card:nth-child(4n){border-right:0}.rule-card:nth-child(n+5){border-bottom:0}
+.rule-title {display:flex;align-items:center;gap:12px;color:#f9e7c7;font:600 22px 'Cinzel',serif;line-height:1.1;white-space:nowrap}
+.rule-num {width:40px;height:40px;flex:0 0 40px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(150deg,#fff0b5,#dba454);color:#241609;font:700 22px 'Cinzel',serif}
+.rule-copy {font:17px/1.48 Georgia,serif;color:#f2e9d9;margin:0}
+.rule-copy strong {color:#ffe19a}
+.rule-art {margin-top:auto;min-height:104px;display:flex;justify-content:center;align-items:center;gap:14px}
+.rule-art svg {max-width:100%;max-height:150px}
+.rules-mini-board {width:155px;height:155px;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);border:4px ridge #c59a5e;box-shadow:0 6px 15px #0008;transform:rotate(0deg)}
+.rules-mini-board span {border:1px solid #9c774a;background:#e9cba1}
+.rules-mini-board span:nth-child(1),.rules-mini-board span:nth-child(2),.rules-mini-board span:nth-child(6),.rules-mini-board span:nth-child(7){background:#63365f}
+.rules-mini-board span:nth-child(4),.rules-mini-board span:nth-child(5),.rules-mini-board span:nth-child(9),.rules-mini-board span:nth-child(10){background:#a9542d}
+.rules-mini-board span:nth-child(16),.rules-mini-board span:nth-child(17),.rules-mini-board span:nth-child(21),.rules-mini-board span:nth-child(22){background:#28688b}
+.rules-mini-board span:nth-child(19),.rules-mini-board span:nth-child(20),.rules-mini-board span:nth-child(24),.rules-mini-board span:nth-child(25){background:#477044}
+.rules-mini-board span:nth-child(13){background:#e8c99a;box-shadow:inset 0 0 0 3px #a17a49}
+.rules-fleet {display:flex;align-items:center;justify-content:center;gap:16px;width:100%}
+.rules-piece {display:flex;flex-direction:column;align-items:center;gap:7px;font:700 14px 'Cinzel',serif;color:#efcf92}
+.rules-piece .art {font-size:63px;line-height:1;filter:drop-shadow(0 6px 5px #000a)}
+.rules-die {width:106px;height:106px;border-radius:22px;background:linear-gradient(145deg,#fffefa 8%,#e9e8e3 60%,#9da0aa);box-shadow:inset -8px -9px 15px #81848c, inset 4px 5px 8px #fff,8px 12px 13px #000a;position:relative;transform:rotate(-7deg)}
+.rules-die .pip {position:absolute;width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#5a5c61,#13161b 75%);box-shadow:inset 1px 2px 4px #000a,1px 1px 2px #fff8}
+.rules-die .pip:nth-child(1){left:18px;top:18px}.rules-die .pip:nth-child(2){right:18px;top:18px}.rules-die .pip:nth-child(3){left:42px;top:42px}.rules-die .pip:nth-child(4){left:18px;bottom:18px}.rules-die .pip:nth-child(5){right:18px;bottom:18px}
+.rules-track {display:flex;justify-content:center;align-items:center;gap:0;filter:drop-shadow(0 5px 7px #0009)}
+.rules-tile {width:65px;height:65px;border:2px solid #967047;background:linear-gradient(130deg,#f3dbb5,#dbb68b);position:relative;display:grid;place-items:center;color:#8a592c;font-size:30px}
+.rules-tile.path {background:linear-gradient(135deg,#2c81ad,#124668);color:#ffe09a}
+.rules-tile.safe:after {content:'';width:29px;height:29px;border-radius:50%;background:radial-gradient(circle at 31% 26%,#fff2ba 0%,#f7d478 19%,#c99532 58%,#8b581b 88%);border:1px solid #97641d;box-shadow:inset -2px -3px 4px #8b561a,1px 3px 3px #50301077}
+.rules-safe-example {display:flex;align-items:center;gap:0}
+.rules-safe-example .rules-tile {width:77px;height:77px}
+.rules-safe-example .rules-tile.safe:after {width:36px;height:36px}
+.rules-kam {display:flex;justify-content:center;gap:0;align-items:center}
+.rules-kam .rules-tile {width:63px;height:71px;font-size:24px;background:linear-gradient(135deg,#f4d8aa,#e0b785)}
+.rules-kam .rules-tile.center {background:linear-gradient(135deg,#8b2d23,#43170f);font-size:35px}
+.rules-kam .rules-tile.blast {box-shadow:inset 0 0 16px #ff5d14aa}
+.rules-kam-labels {display:flex;justify-content:center;font:14px 'Inter',sans-serif;color:#f7d49a;gap:0}
+.rules-kam-labels span {width:63px;text-align:center}
+.rules-foot {flex:0 0 29px;display:flex;justify-content:center;align-items:center;color:#9ab3c2;font:13px 'Inter',sans-serif;letter-spacing:.5px;background:#061421}
+@media (prefers-reduced-motion:reduce){#rulesOverlay *{animation:none!important}}
+
+
+  /* Ship-loss cinematics: isolated presentation, never changes game rules. */
+  #shipCinematicOverlay { position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center;
+    background:#000; padding:clamp(12px,3vw,42px); }
+  #shipCinematicOverlay.active { display:flex; }
+  #shipCinematicGrid { width:100%; height:100%; display:grid; gap:clamp(8px,1.4vw,24px);
+    align-content:center; justify-items:center; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #shipCinematicGrid.single { grid-template-columns:minmax(0,1fr); }
+  .ship-cinematic { width:100%; min-width:0; display:flex; align-items:center; justify-content:center; }
+  .ship-cinematic video { display:block; width:100%; max-width:100%; max-height:calc(100vh - 88px);
+    aspect-ratio:16 / 9; object-fit:contain; background:#000; }
+  #shipCinematicGrid.single .ship-cinematic { max-width:min(90vw, calc((100vh - 90px)*16/9)); }
+  #shipCinematicGrid:not(.single) .ship-cinematic video { max-height:calc((100vh - 112px)/2); }
+  #shipCinematicSkip { position:absolute; right:20px; top:16px; z-index:1; color:#f3ecd9;
+    background:rgba(25,31,42,.82); border:1px solid rgba(232,199,102,.6); border-radius:8px;
+    padding:10px 16px; font:600 13px Inter,sans-serif; cursor:pointer; }
+  #shipCinematicSkip:focus-visible { outline:3px solid #e8c766; }
+
+/* STAGE 14.2 — approved opening artwork is a single image; setup styling preserved. */
+#setup {
+  position:fixed; inset:0; max-width:none; margin:0;
+  overflow:auto; box-sizing:border-box; padding:clamp(30px,6vh,76px) 18px 32px;
+  text-align:center; isolation:isolate; background:#07182b;
+}
+#setup::before {
+  content:''; position:fixed; inset:-12px; z-index:-2; pointer-events:none;
+  background:url('assets/approved_home.png') center 43% / cover no-repeat;
+  filter:blur(4px) saturate(.83);
+}
+#setup::after {
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:linear-gradient(90deg,rgba(2,11,23,.54),rgba(3,13,28,.83) 29%,rgba(3,13,28,.88) 70%,rgba(2,11,23,.55)),
+             linear-gradient(180deg,rgba(3,12,23,.22),rgba(3,12,23,.65));
+}
+#setup h1 { margin:0 auto 12px; font-size:clamp(22px,3vw,34px); text-shadow:0 4px 18px #000; }
+#setup .tag { margin:0 auto 22px; color:#d6e2ed; text-shadow:0 2px 8px #000; }
+#setup .panel {
+  width:min(100%,510px); box-sizing:border-box; margin:0 auto; padding:22px;
+  text-align:left; border:1px solid rgba(241,203,111,.74); border-radius:15px;
+  background:linear-gradient(145deg,rgba(10,30,51,.96),rgba(5,19,35,.97));
+  box-shadow:0 20px 65px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.035);
+}
+#setup label { color:#d7e2ef; }
+#setup select, #setup input { background:#0c192d; }
+#setup button { box-shadow:0 5px 14px rgba(0,0,0,.3); }
+@media (max-height:690px) {
+  #setup { padding-top:22px; }
+  #setup .tag { margin-bottom:12px; }
+  #setup .panel { padding:14px 20px; }
+}
+
+
+/* LODU portrait pass-and-play adaptation: no changes to rules or board coordinates. */
+@media (max-width: 700px) and (orientation: portrait) {
+ html { overflow-x:hidden; }
+ body { overflow-x:hidden; touch-action:pan-y; }
+ #setup { margin:22px auto; padding:0 16px; max-width:480px; }
+ #setup input,#setup select,#setup button { min-height:48px; font-size:16px; }
+ .stage { width:1040px!important; height:2360px!important; margin:0!important; overflow:hidden; }
+ .topbar { width:1040px; height:100px; padding:0 26px; }
+ .brand .word { font-size:38px; }
+ .brand .tag { display:none; }
+ .turn-compact { font-size:24px; padding:12px 20px; }
+ .top-right { gap:14px; }
+ .opp-chip,#debugToggle { display:none!important; }
+ .icon-btn { width:65px;height:65px;font-size:32px; }
+ .board-frame { left:26px!important; top:122px!important; width:988px; height:988px; }
+ .board-svg,#pieceLayer,#battleFxLayer { transform:translate(-278px,44px); transform-origin:top left; }
+ .rules-tab { left:32px;top:1020px;width:145px;height:88px;font-size:21px;flex-direction:row;gap:8px; }
+ .rules-tab .book {font-size:34px;}
+ .command-panel {left:26px!important;right:auto!important;top:1135px!important;bottom:auto!important;width:988px!important;height:1180px!important;padding:26px 32px;display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:12px 30px;overflow-y:auto;}
+ .command-panel .cp-section { padding:14px 0;min-width:0; }
+ .command-panel .cp-player {grid-column:1;grid-row:1;}
+ .command-panel .cp-your-turn {grid-column:2;grid-row:1;align-self:center;font-size:21px!important;}
+ .command-panel .die-wrap {grid-column:1;grid-row:2 / span 2;}
+ .command-panel #fleetPickerSection {grid-column:2;grid-row:2;}
+ .command-panel .cp-section:has(.kam-header) {grid-column:2;grid-row:3;}
+ .command-panel .cp-section:has(#battleReport) {grid-column:1 / -1;}
+ .command-panel .cp-section:has(#statusRows) {grid-column:1 / -1;}
+ .cp-player .portrait {width:110px;height:110px;flex-basis:110px;}
+ .cp-player .id b {font-size:28px!important;}
+ .cp-player .id span {font-size:21px!important;}
+ .roll-btn,.kamikaze-btn {min-height:84px;font-size:25px!important;touch-action:manipulation;}
+ .die-caption,.kam-note {font-size:19px!important;}
+ .br-title,.kam-title,.ps-title {font-size:24px!important;}
+ .fleet-picker button {min-height:65px;touch-action:manipulation;}
+ #rulesOverlay {width:1040px;height:2360px;align-items:flex-start;padding-top:180px;}
+ .rules-modal {width:990px;height:1650px;}
+ .rules-grid {overflow-y:auto;}
+}
+
+
+/* Mobile portrait v2: readable command deck and portrait home artwork. */
+@media (max-width:700px) and (orientation:portrait) {
+ #mainMenu {overflow:hidden;background:#030c17;}
+ #menuCanvas.approved-menu {position:absolute!important;left:0!important;top:0!important;width:100vw!important;height:100dvh!important;transform:none!important;background:#030c17!important;}
+ .approved-home-art {width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important;}
+ /* The original PLAY button is baked into the desktop image; add an independent, reachable touch target. */
+ .approved-play-hotspot {left:15%!important;top:auto!important;bottom:8%!important;width:70%!important;height:10%!important;min-height:62px!important;border:3px solid #f3cf78!important;background:linear-gradient(#e9b956,#8c4c14)!important;box-shadow:0 5px 22px #000!important;border-radius:18px!important;}
+ .approved-play-hotspot span {position:static!important;width:auto!important;height:auto!important;overflow:visible!important;clip-path:none!important;color:#fff4ce!important;font:bold clamp(23px,7vw,36px) Georgia,serif!important;letter-spacing:4px!important;text-shadow:0 2px 3px #422!important;}
+ .command-panel {height:1190px!important;grid-template-columns:1fr 1fr!important;gap:10px 22px!important;padding:22px 30px!important;overflow:visible!important;}
+ .command-panel .cp-player {grid-column:1!important;grid-row:1!important;align-self:start;}
+ .command-panel .cp-your-turn {grid-column:1!important;grid-row:2!important;align-self:start!important;font-size:26px!important;margin:0!important;padding:10px!important;}
+ .command-panel .die-wrap {grid-column:1!important;grid-row:3 / span 2!important;}
+ .command-panel #fleetPickerSection {grid-column:2!important;grid-row:1 / span 3!important;}
+ .command-panel .cp-section:has(.kam-header) {grid-column:1 / -1!important;grid-row:5!important;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;align-items:center;}
+ .command-panel .cp-section:has(.kam-header) .kam-header {grid-column:1 / -1;margin:0;}
+ .command-panel .cp-section:has(.kam-header) .kam-note {grid-column:1;margin:0!important;font-size:22px!important;line-height:1.4!important;}
+ .command-panel .cp-section:has(.kam-header) .kamikaze-btn {grid-column:2;min-height:100px!important;}
+ .command-panel .cp-section:has(#battleReport) {grid-column:1 / -1!important;grid-row:6!important;}
+ .command-panel .cp-section:has(#statusRows) {grid-column:1 / -1!important;grid-row:7!important;}
+ .command-panel .cp-section {padding:8px 0!important;}
+ .fleet-card {min-height:88px!important;padding:12px!important;gap:12px!important;}
+ .fleet-card-icon {width:52px!important;height:52px!important;font-size:30px!important;}
+ .fleet-card-copy {font-size:21px!important;}
+ .fleet-card-copy * {font-size:20px!important;line-height:1.3!important;}
+ #fleetHint {float:none!important;display:block!important;font-size:17px!important;margin-top:8px!important;}
+ .br-title,.kam-title,.ps-title {font-size:26px!important;}
+ .br-entry,.br-empty,.ps-row {font-size:20px!important;}
+ .br-entry .t,.ps-pill {font-size:17px!important;}
+ .die-caption {font-size:21px!important;}
+}
+
+
+/* LODU MOBILE v3 — approved portrait art and consolidated command deck */
+@media (max-width:700px) and (orientation:portrait) {
+ #mainMenu #menuCanvas.approved-menu { width:100vw!important;height:100dvh!important; }
+ #mainMenu picture {display:block;width:100%;height:100%;} #mainMenu .approved-home-art {object-fit:fill!important;object-position:center!important;}
+ #mainMenu .approved-play-hotspot {left:16%!important;top:72%!important;bottom:auto!important;width:68%!important;height:11%!important;min-height:0!important;border:0!important;background:transparent!important;box-shadow:none!important;}
+ #mainMenu .approved-play-hotspot span {position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;}
+ .command-panel {height:1190px!important;display:grid!important;grid-template-columns:1.1fr 1fr!important;grid-template-rows:auto auto auto 1fr!important;gap:10px 22px!important;align-content:stretch!important;overflow:hidden!important;}
+ .command-panel .cp-player {grid-column:1!important;grid-row:1!important;box-shadow:0 0 18px rgba(200,100,255,.6)!important;}
+ .command-panel .cp-your-turn {display:none!important;}
+ .command-panel #fleetPickerSection {grid-column:2!important;grid-row:1 / span 2!important;}
+ .command-panel .cp-section:has(#battleReport) {grid-column:1!important;grid-row:2!important;min-height:0!important;}
+ .command-panel .cp-section:has(#statusRows) {grid-column:1!important;grid-row:3!important;}
+ .command-panel .cp-section:has(.kam-header) {grid-column:2!important;grid-row:3!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;}
+ .command-panel .cp-section:has(.kam-header) .kam-header {width:100%!important;}
+ .command-panel .cp-section:has(.kam-header) .kam-note {font-size:20px!important;line-height:1.35!important;}
+ .command-panel .cp-section:has(.kam-header) .kamikaze-btn {min-height:96px!important;}
+ .command-panel .fleet-card-copy {display:flex!important;flex-direction:row!important;align-items:baseline!important;flex-wrap:wrap!important;gap:8px!important;}
+ .command-panel .fleet-card-copy strong {font-size:30px!important;white-space:nowrap!important;}
+ .command-panel .fleet-card-copy small {font-size:15px!important;white-space:nowrap!important;}
+ .command-panel .fleet-card {min-height:110px!important;}
+ .command-panel #battleReport {max-height:310px!important;overflow-y:auto!important;}
+ .command-panel .br-entry,.command-panel .br-empty {font-size:20px!important;}
+ .command-panel .cp-section:has(#statusRows) {font-size:20px!important;}
+ .stage > .die-wrap.mobile-board-die {position:absolute!important;left:455px!important;top:551px!important;width:130px!important;height:130px!important;padding:0!important;margin:0!important;z-index:70!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;touch-action:manipulation!important;filter:drop-shadow(0 5px 9px rgba(0,0,0,.7));}
+ .stage > .die-wrap.mobile-board-die #dieSvg {width:122px!important;height:122px!important;pointer-events:none!important;}
+ .stage > .die-wrap.mobile-board-die .die-caption,.stage > .die-wrap.mobile-board-die #rollBtn {display:none!important;}
+ .stage > .die-wrap.mobile-board-die.die-disabled {opacity:.7!important;cursor:default!important;}
+}
+
+/* MOBILE v4: a true portrait rules handbook; desktop rules untouched. */
+@media (max-width:700px) and (orientation:portrait) {
+  #rulesOverlay {position:absolute!important;inset:0 auto auto 0!important;width:1040px!important;height:2360px!important;box-sizing:border-box!important;padding:90px 24px 80px!important;align-items:stretch!important;justify-content:center!important;overflow:hidden!important;}
+  #rulesOverlay .rules-modal {box-sizing:border-box!important;width:100%!important;height:100%!important;max-height:none!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:25px!important;}
+  #rulesOverlay .rules-head {flex:0 0 145px!important;min-height:145px!important;gap:22px!important;padding:0 95px 0 28px!important;justify-content:flex-start!important;box-sizing:border-box!important;}
+  #rulesOverlay .rules-logo {font-size:49px!important;white-space:nowrap!important;letter-spacing:2px!important;}
+  #rulesOverlay .rules-heading {font-size:38px!important;letter-spacing:2px!important;white-space:nowrap!important;}
+  #rulesOverlay .rules-sub {font-size:16px!important;letter-spacing:1px!important;}
+  #rulesOverlay .rules-close {top:37px!important;right:23px!important;width:72px!important;height:72px!important;font-size:45px!important;z-index:4!important;}
+  #rulesOverlay .rules-grid {display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:12px 28px 40px!important;gap:0!important;scrollbar-width:thin!important;}
+  #rulesOverlay .rule-card {flex:0 0 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;gap:15px!important;padding:28px 12px 34px!important;border-right:0!important;border-bottom:2px solid rgba(207,166,95,.48)!important;}
+  #rulesOverlay .rule-card:last-child {border-bottom:0!important;}
+  #rulesOverlay .rule-title {font-size:35px!important;line-height:1.2!important;white-space:normal!important;gap:18px!important;}
+  #rulesOverlay .rule-num {width:55px!important;height:55px!important;flex:0 0 55px!important;font-size:30px!important;}
+  #rulesOverlay .rule-copy {font-size:29px!important;line-height:1.42!important;max-width:none!important;}
+  #rulesOverlay .rule-art {margin-top:8px!important;min-height:0!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:22px!important;overflow:visible!important;flex-wrap:wrap!important;}
+  #rulesOverlay .rule-art svg {max-width:100%!important;max-height:190px!important;}
+  #rulesOverlay .rules-mini-board {width:170px!important;height:170px!important;flex-shrink:0!important;}
+  #rulesOverlay .rules-piece {font-size:22px!important;}
+  #rulesOverlay .rules-piece .art {font-size:70px!important;}
+  #rulesOverlay .rules-foot {flex:0 0 auto!important;min-height:45px!important;font-size:18px!important;line-height:1.4!important;text-align:center!important;padding:8px 18px!important;box-sizing:border-box!important;}
+}
+
+/* LODU v5: mobile instructions and clean Kamikaze header */
+.lodu-modal-overlay[hidden]{display:none!important}
+.lodu-modal-overlay{position:fixed;inset:0;z-index:20000;background:rgba(0,8,16,.8);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.lodu-square-card{width:min(85vw,390px);aspect-ratio:1/1;box-sizing:border-box;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 25px;background:radial-gradient(circle at 50% 25%,#1c4961,#071827 85%);border:3px double #d7b66c;border-radius:18px;box-shadow:0 16px 70px #000, inset 0 0 28px #a17b2e30;color:#f6d997}
+.lodu-modal-close{position:absolute;right:12px;top:10px;min-width:42px;min-height:42px;border:1px solid #cda65e;border-radius:50%;background:#102a3b;color:#f7dd9a;font-size:30px;line-height:1;cursor:pointer}
+.lodu-modal-dice{font-size:clamp(48px,15vw,82px);margin-bottom:16px}
+.lodu-modal-heading{font-family:Cinzel,Georgia,serif;font-size:clamp(23px,6vw,34px);line-height:1.25;font-weight:700;letter-spacing:1px;color:#f8d68b}
+.lodu-modal-copy{font:clamp(13px,3.5vw,18px)/1.5 Inter,Arial,sans-serif;color:#f3e8ce;margin:16px 0 0}
+.kam-info{margin-left:8px;margin-right:auto;border:1px solid #d8b36c;background:#102e41;color:#f8d68b;border-radius:50%;width:32px;height:32px;font-size:24px;line-height:1;cursor:pointer;flex-shrink:0}
+@media(max-width:700px) and (orientation:portrait){.command-panel .cp-section:has(.kam-header) .kam-note{display:none!important}.command-panel .cp-section:has(.kam-header){gap:8px!important}.kam-info{width:42px;height:42px;font-size:29px}}
+/* Every cinematic is a centered, uncropped 16:9 presentation on phones. */
+@media(max-width:700px) and (orientation:portrait){#shipCinematicOverlay{padding:0!important;align-items:center!important;justify-content:center!important}#shipCinematicGrid,#shipCinematicGrid.single{width:100vw!important;height:auto!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important}#shipCinematicGrid .ship-cinematic{width:100vw!important;max-width:100vw!important;aspect-ratio:16/9!important;display:flex!important;align-items:center!important;justify-content:center!important}#shipCinematicGrid .ship-cinematic video{width:100%!important;height:auto!important;max-height:none!important;aspect-ratio:16/9!important;object-fit:contain!important}#shipCinematicSkip{top:max(16px,env(safe-area-inset-top))!important}}
+
+/* LODU v6: preserve the full widescreen opening cinematic on portrait phones. */
+@media (max-width:700px) and (orientation:portrait) {
+ #splash {background:#000!important;align-items:center!important;justify-content:center!important;}
+ #splashVideo {display:block!important;width:100vw!important;height:auto!important;aspect-ratio:16/9!important;max-height:100dvh!important;object-fit:contain!important;object-position:center center!important;flex:0 0 auto!important;}
+}
+
+/* v7: simultaneous multi-faction destruction films. */
+#shipCinematicGrid.multi-stack {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#shipCinematicGrid.multi-stack .ship-cinematic {width:min(90vw,calc((100dvh - 90px)/3 * 16/9));aspect-ratio:16/9;flex:0 0 auto;}
+#shipCinematicGrid.multi-stack .ship-cinematic video {width:100%;height:100%;max-height:none;object-fit:contain;}
+#shipCinematicGrid.multi-four {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,auto);align-content:center;justify-items:center;gap:10px;}
+#shipCinematicGrid.multi-four .ship-cinematic {width:100%;aspect-ratio:16/9;}
+#shipCinematicGrid.multi-four .ship-cinematic video {width:100%;height:100%;max-height:none;object-fit:contain;}
+@media(max-width:700px) and (orientation:portrait){
+ #shipCinematicGrid.multi-stack {width:100vw!important;height:100dvh!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:12px!important;}
+ #shipCinematicGrid.multi-stack .ship-cinematic {width:min(100vw,calc((100dvh - 85px)/3 * 16/9))!important;max-width:100vw!important;aspect-ratio:16/9!important;}
+ #shipCinematicGrid.multi-four {width:100vw!important;height:100dvh!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(2,auto)!important;align-content:center!important;gap:8px!important;}
+ #shipCinematicGrid.multi-four .ship-cinematic {width:100%!important;max-width:100%!important;aspect-ratio:16/9!important;}
+ #shipCinematicGrid.multi-stack .ship-cinematic video,#shipCinematicGrid.multi-four .ship-cinematic video {width:100%!important;height:100%!important;max-height:none!important;object-fit:contain!important;}
+}
+</style>
+<style id="lodu-v22-menu-style">
+/* LODU v2.2: three real buttons; cover the baked-in PLAY artwork without modifying art files. */
+#mainMenu .lodu-new-menu{position:absolute;z-index:50;left:50%;top:70%;transform:translateX(-50%);width:52%;padding:14px 22px;border:2px solid #c79a4b;border-radius:22px;background:linear-gradient(160deg,rgba(6,25,41,.98),rgba(14,47,64,.98));box-shadow:0 8px 35px #000c;display:flex;flex-direction:column;gap:10px;align-items:stretch;}
+#mainMenu .lodu-new-menu-btn{position:relative!important;left:auto!important;top:auto!important;bottom:auto!important;transform:none!important;width:100%!important;height:auto!important;min-height:46px!important;display:block!important;border:2px solid #d5ad61!important;border-radius:13px!important;background:linear-gradient(180deg,#264b61,#102b40)!important;color:#ffe3a2!important;font:bold clamp(15px,1.65vw,22px) Georgia,serif!important;letter-spacing:.7px!important;box-shadow:inset 0 1px 0 #ffffff35,0 3px 8px #0007!important;cursor:pointer!important;padding:11px 12px!important;text-align:center!important;white-space:nowrap!important;}
+#mainMenu .lodu-new-menu-btn:active{filter:brightness(1.2)}
+#mainMenu .lodu-new-menu-btn:focus-visible{outline:3px solid #fff1aa;outline-offset:2px}
+@media(max-width:700px) and (orientation:portrait){#mainMenu .lodu-new-menu{top:auto;bottom:7%;width:80%;padding:11px 12px;gap:8px;border-radius:18px;}#mainMenu .lodu-new-menu-btn{min-height:48px!important;font-size:clamp(15px,4.4vw,20px)!important;padding:10px 8px!important;}}
+#onlineLobby button{background:#173b51;color:#f7dda1;border:1px solid #d0a85d;border-radius:9px;padding:10px 14px;cursor:pointer}
+#onlineLobby input,#onlineLobby select{background:#f6f1e6;color:#10283b;border:1px solid #caa75c;border-radius:8px;min-height:42px;max-width:95%}
+#onlineLobby{box-sizing:border-box;width:calc(100% - 24px);margin:18px auto!important;max-height:calc(100dvh - 36px);overflow:auto;}
+</style>
+</head>
+<body>
+
+<!-- ================= SPLASH ================= -->
+<div id="splash">
+  <video id="splashVideo" playsinline preload="auto">
+    <source src="assets/lodu_splash.mp4" type="video/mp4">
+    <source src="assets/lodu_splash.webm" type="video/webm">
+  </video>
+  <div id="introGate"><h2>LODU</h2><p>ESCORT · EXPLODE · WIN</p><button id="introEnter" type="button">ENTER LODU ▶</button><span id="introAudioNote">Sound on · cinematic introduction</span></div>
+  <div id="splashSkip" role="button" tabindex="0">SKIP ▶</div>
+  <div id="splashStartHint">CLICK TO START</div>
+</div>
+
+<!-- ================= MAIN MENU ================= -->
+<div id="mainMenu">
+  <div class="menu-canvas approved-menu" id="menuCanvas">
+    <picture><source media="(max-width:700px) and (orientation:portrait)" srcset="assets/approved_home_mobile_9x16.png"><img class="approved-home-art" src="assets/approved_home_play.png" alt="Four LODU commanders and the Play button" id="homeArtwork" /></picture>
+    <div class="lodu-new-menu" aria-label="Choose your LODU battle">
+      <button id="playLoduBtn" class="lodu-new-menu-btn" type="button">PLAY OFFLINE</button>
+      <button id="onlineInviteBtn" class="lodu-new-menu-btn" type="button">INVITE FRIENDS</button>
+      <button id="onlineJoinBtn" class="lodu-new-menu-btn" type="button">JOIN A FRIEND</button>
+    </div>
+  </div>
+</div>
+
+<div id="onlineLobby" style="display:none;position:relative;z-index:20;max-width:530px;margin:6vh auto;padding:24px;background:#10283b;color:#f1d69c;border:2px solid #bd9652;border-radius:14px;font-family:system-ui;text-align:center">
+<h2>LODU — ONLINE BATTLE</h2><p id="onlineStatus">Connecting to battle server…</p>
+<div id="onlineEntry"><h3 id="onlineEntryTitle">INVITE FRIENDS</h3><input id="onlineName" maxlength="24" placeholder="Your name" style="padding:12px;max-width:95%"><div id="onlineJoinFields" style="display:none"><p><input id="onlineCode" maxlength="6" inputmode="numeric" placeholder="6-digit room code" style="padding:12px;max-width:95%"></p></div><p><button id="onlineCreate">CREATE PRIVATE ROOM</button><button id="onlineJoin" style="display:none">JOIN ROOM</button></p></div>
+<div id="onlineRoom" style="display:none"><h3>ROOM <span id="onlineRoomCode"></span></h3><p id="onlinePeople"></p><label>Choose your faction <select id="onlineFaction"><option value="">Select faction</option><option>NORTH</option><option>EAST</option><option>SOUTH</option><option>WEST</option></select></label><p><button id="onlineStart">START BATTLE</button></p></div>
+<p id="onlineError" style="color:#ffacac"></p><button id="onlineBack">BACK TO MENU</button></div>
+<div id="setup">
+  <h1>LODU — GAME SETUP</h1>
+  <p class="tag">Choose your commanders and start the match</p>
+  <div class="panel">
+    <label for="playerCount">Number of Players</label>
+    <select id="playerCount">
+      <option value="2" selected>2 Players</option>
+      <option value="3">3 Players</option>
+      <option value="4">4 Players</option>
+    </select>
+    <div id="factionSelects"></div>
+    <button id="startBtn">Start Match</button>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+  <svg class="wave-layer" width="1920" height="1080">
+    <defs><filter id="waves"><feTurbulence type="fractalNoise" baseFrequency="0.008 0.02" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.1  0 0 0 0 0.35  0 0 0 0 0.5  0 0 0 0.4 0"/></filter></defs>
+    <rect width="1920" height="1080" filter="url(#waves)"/>
+  </svg>
+
+  <div class="topbar">
+    <div class="brand"><span class="word">LODU</span><span class="tag">ESCORT&nbsp;·&nbsp;EXPLODE&nbsp;·&nbsp;WIN</span></div>
+    <div class="turn-compact"><span class="dot" id="turnDot"></span> <span id="turnText">—</span></div>
+    <div class="top-right">
+      <div class="opp-chip" id="oppChip"></div>
+      <div class="icon-btn" id="debugToggle" title="Toggle debug overlay">DBG</div>
+      <button class="icon-btn" id="gameMenuBtn" title="Return to main menu" aria-label="Return to main menu">☰</button>
+    </div>
+  </div>
+
+
+  <button id="rulesTab" class="rules-tab" type="button" aria-label="Open Quick Rules" aria-haspopup="dialog" aria-controls="rulesOverlay"><span class="book" aria-hidden="true">📖</span><span>RULES</span></button>
+  <div id="rulesOverlay" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" aria-hidden="true">
+    <section class="rules-modal">
+      <header class="rules-head"><span class="rules-logo">⚓ LODU</span><div><div id="rulesTitle" class="rules-heading">QUICK RULES</div><div class="rules-sub">ESCORT · EXPLODE · WIN</div></div><button type="button" class="rules-close" id="rulesClose" aria-label="Close rules">×</button></header>
+      <div class="rules-grid">
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">1</span>THE BOARD</div><p class="rule-copy">Four navies — Bearistan, Aegionia, Dragonia and Rangapura — sail clockwise around the board toward HOME.</p><div class="rule-art"><div class="rules-mini-board" aria-label="Four coloured harbours surrounding a central HOME"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">2</span>YOUR PIECES</div><p class="rule-copy">Each navy commands exactly <strong>2 ships and 1 missile</strong>. Ships can enter HOME; missiles cannot.</p><div class="rule-art rules-fleet"><div class="rules-piece"><span class="art" aria-hidden="true">⛵</span>SHIP 1</div><div class="rules-piece"><span class="art" aria-hidden="true">⛵</span>SHIP 2</div><div class="rules-piece"><span class="art" aria-hidden="true">🚀</span>MISSILE</div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">3</span>ROLLING THE DIE</div><p class="rule-copy">Roll to move a piece. A <strong>1 or 6</strong> lets you deploy a piece from harbour. Rolling a <strong>6</strong> earns an extra roll. <strong>Opening balance:</strong> if another navy has deployed and yours has not, three unsuccessful deployment rolls activate a temporary 50% chance of rolling 1 or 6 until your first deployment. This can happen only once per navy per game.</p><div class="rule-art"><div class="rules-die" aria-label="Illustrated ivory die showing five"><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">4</span>MOVEMENT</div><p class="rule-copy">Move your chosen piece clockwise by the number rolled. Friendly pieces may share a square.</p><div class="rule-art"><div class="rules-track"><div class="rules-tile path">⛵</div><div class="rules-tile path">➜</div><div class="rules-tile path">➜</div><div class="rules-tile path">➜</div></div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">5</span>CAPTURING</div><p class="rule-copy">When your <strong>ship OR missile</strong> lands on an enemy piece, the enemy is sent back to harbour. <strong>Safe squares are protected.</strong></p><div class="rule-art"><div class="rules-track"><div class="rules-tile">⛵</div><div class="rules-tile path">⚔</div><div class="rules-tile">🚀</div></div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">6</span>SAFE SQUARES</div><p class="rule-copy">There are <strong>12 safe squares</strong>, the <strong>8 ivory tiles with raised golden orbs</strong> and the <strong>4 starting squares where navies enter the track</strong>. Normal ship and missile attacks cannot capture pieces here. Kamikaze can.</p><div class="rule-art"><div class="rules-safe-example"><div class="rules-tile"></div><div class="rules-tile safe" aria-label="Ivory safe tile with raised gold marker"></div><div class="rules-tile"></div></div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">7</span>KAMIKAZE</div><p class="rule-copy">Declare Kamikaze <strong>before moving your missile</strong>. It detonates at its destination, destroying all pieces on its node, <strong>2 behind and 2 ahead</strong> — even on safe squares.</p><div class="rule-art" style="flex-direction:column;gap:5px"><div class="rules-kam"><div class="rules-tile blast">💥</div><div class="rules-tile blast">💥</div><div class="rules-tile center">🚀</div><div class="rules-tile blast">💥</div><div class="rules-tile blast">💥</div></div><div class="rules-kam-labels"><span>−2</span><span>−1</span><span>MISSILE</span><span>+1</span><span>+2</span></div></div></article>
+        <article class="rule-card"><div class="rule-title"><span class="rule-num">8</span>VICTORY</div><p class="rule-copy">Bring <strong>both ships</strong> into your HOME to win. Missiles cannot enter HOME.</p><div class="rule-art"><div class="rules-track"><div class="rules-tile path">⛵</div><div class="rules-tile path">⛵</div><div class="rules-tile" style="width:130px;font:700 22px Cinzel,serif">HOME</div></div></div></article>
+      </div>
+      <div class="rules-foot">Close this handbook at any time to resume your turn. Your game stays exactly as it was.</div>
+    </section>
+  </div>
+
+  <div class="board-frame"></div>
+  <svg class="board-svg" id="boardSvg" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+  <div id="pieceLayer"></div>
+  <div id="battleFxLayer" aria-hidden="true"></div>
+
+  <div class="command-panel">
+    <div class="cp-section cp-player">
+      <div class="portrait" id="cpPortrait"></div>
+      <div class="id"><b id="cpCommander"></b><span id="cpFaction"></span></div>
+    </div>
+    <div class="cp-your-turn" id="cpYourTurn" style="margin:0 0 14px;"></div>
+
+    <div id="dieOriginalPosition" style="display:none"></div>
+    <div class="cp-section die-wrap">
+      <svg id="dieSvg" width="130" height="130" viewBox="0 0 148 148"></svg>
+      <div class="die-caption" id="dieCaption">Roll to begin</div>
+      <button class="roll-btn" id="rollBtn">Roll Dice</button>
+    </div>
+
+    <div class="cp-section" id="fleetPickerSection">
+      <div class="br-title">YOUR FLEET <span id="fleetHint" style="float:right;font-size:10px;letter-spacing:0;color:#a6bdc7">Roll to activate</span></div>
+      <div id="fleetPicker" class="fleet-picker"></div>
+    </div>
+
+    <div class="cp-section">
+      <div class="kam-header"><span class="kam-title">☢ KAMIKAZE</span><button id="kamInfoBtn" class="kam-info" type="button" aria-label="How Kamikaze works" aria-haspopup="dialog">ⓘ</button><span class="kam-badge" id="kamBadge">1 LEFT</span></div>
+      
+      <button class="kamikaze-btn" id="kamikazeBtn">Use Kamikaze</button>
+    </div>
+
+    <div class="cp-section">
+      <div class="br-title">BATTLE REPORT</div>
+      <div id="battleReport"><div class="br-empty">No moves yet.</div></div>
+    </div>
+
+    <div class="cp-section">
+      <div class="ps-title">STATUS</div>
+      <div id="statusRows"></div>
+    </div>
+  </div>
+</div>
+
+<div id="kamikazeConfirm">
+  <div class="box">
+    <h3>☢ DETONATE KAMIKAZE?</h3>
+    <p>Your Missile at node <b id="kamNode"></b> will be sacrificed. Everything on the five nodes below is destroyed —
+      <b style="color:#ff9b8a">including your own pieces caught in the blast.</b> This cannot be undone.</p>
+    <div class="footprint" id="kamFootprint"></div>
+    <div class="btns">
+      <button class="cancel" id="kamCancel">Cancel</button>
+      <button class="confirm" id="kamConfirm">Detonate</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="loduDiceHint" class="lodu-modal-overlay" role="dialog" aria-modal="true" aria-label="Dice instruction" hidden><div class="lodu-square-card"><button class="lodu-modal-close" id="loduDiceHintClose" type="button" aria-label="Close instruction">×</button><div class="lodu-modal-dice">🎲</div><div class="lodu-modal-heading">TOUCH DICE<br>TO ROLL</div></div></div>
+<div id="loduMoveHint" class="lodu-modal-overlay" role="dialog" aria-modal="true" aria-label="How to move a piece" hidden><div class="lodu-square-card"><button class="lodu-modal-close" id="loduMoveHintClose" type="button" aria-label="Close instruction">×</button><div class="lodu-modal-heading">MOVE YOUR PIECE</div><p class="lodu-modal-copy">Tap the button in the game panel or touch the piece, to move.</p></div></div>
+<div id="loduKamHelp" class="lodu-modal-overlay" role="dialog" aria-modal="true" aria-label="How Kamikaze works" hidden><div class="lodu-square-card"><button class="lodu-modal-close" id="loduKamHelpClose" type="button" aria-label="Close Kamikaze information">×</button><div class="lodu-modal-heading">☢ KAMIKAZE</div><p class="lodu-modal-copy">Sacrifice your active missile instead of rolling. It detonates at its destination and destroys all pieces on that node and up to two nodes before and after it — including your own, even on safe squares. This cannot be undone.</p></div></div>
+<div id="shipCinematicOverlay" role="dialog" aria-modal="true" aria-label="Ship destruction cinematics" aria-hidden="true">
+  <button id="shipCinematicSkip" type="button" aria-label="Skip destruction cinematics">SKIP ›</button>
+  <div id="shipCinematicGrid"></div>
+</div>
+
+<div id="placementToast" aria-live="polite" style="display:none;position:fixed;top:7%;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;text-align:center;padding:20px 48px;background:linear-gradient(130deg,#1c2845,#523b24);border:3px solid #eacb77;border-radius:18px;box-shadow:0 10px 55px #000;color:#ffdf93;font:900 30px Georgia,serif"></div>
+<div id="grandCeremony" style="display:none;position:fixed;inset:0;z-index:10000;background:#080b14;align-items:center;justify-content:center"><iframe id="ceremonyFrame" title="LODU Grand Victory Ceremony" src="ceremony/index.html" style="width:100%;height:100%;border:0" allow="autoplay"></iframe></div>
+<div id="victoryOverlay">
+  <div class="crest" id="victoryCrest"></div>
+  <h2 id="victoryText">VICTORY!</h2>
+  <p id="victorySub"></p>
+  <button onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================================
+   RULES LAYER — mechanically generated from board.js + rules.js by
+   build_embed.js (see the EMBEDDED-ENGINE-START marker below).
+   Do not hand-edit this block: it is a build artifact, not source. To
+   change engine behavior, edit board.js/rules.js and re-run the build.
+   ========================================================================= */
+/* === EMBEDDED-ENGINE-START (auto-generated by build_embed.js from board.js + rules.js — do not hand-edit) === */
+const Board = (() => {
+  // LODU — Board Topology (Phase 1)
+  // Pure data/logic. NO screen coordinates, NO rendering concerns live here.
+  // Derived directly from LODU_Board_Cropped.png (canonical board reference)
+  // and LODU_Master_Game_Specification_v1.1_CLEAN.docx.
+  //
+  // Perimeter: 68 shared nodes, IDs 1..68, clockwise, 68 wraps to 1.
+  // The four coloured outermost home-lane squares are shared perimeter junctions.
+  // Each player has:
+  //   - a deploy node (where a piece enters the perimeter from Base)
+  //   - a home-entry node (the last shared perimeter node before turning
+  //     into that player's private 8-step Home Lane)
+  //   - a home lane of 7 private positions (H2..H8; H1 is shared), then HOME (terminal).
+  //
+  // Derivation (confirmed against the board diagram):
+  //   North: deploy = 1,  entry = 68
+  //   East:  deploy = 18, entry = 17
+  //   South: deploy = 35, entry = 34
+  //   West:  deploy = 52, entry = 51
+  // General rule: entry = deploy - 1 (mod 68, 0 -> 68)
+
+  'use strict';
+
+  const PERIMETER_SIZE = 68;
+
+  const PLAYERS = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
+
+  const FACTIONS = {
+    NORTH: { nation: 'Bearistan', commander: 'Admiral Boris Bear', colour: 'purple' },
+    EAST: { nation: 'Aegionia', commander: 'Commander Eagle Sterling', colour: 'blue' },
+    SOUTH: { nation: 'Dragonia', commander: 'General Long Dragonia', colour: 'green' },
+    WEST: { nation: 'Rangapura', commander: 'Marshal Zari Fox', colour: 'orange' },
+  };
+
+  const DEPLOY_NODE = { NORTH: 1, EAST: 18, SOUTH: 35, WEST: 52 };
+
+  const ENTRY_NODE = {};
+  for (const p of PLAYERS) {
+    const d = DEPLOY_NODE[p];
+    ENTRY_NODE[p] = d === 1 ? PERIMETER_SIZE : d - 1;
+  }
+
+  // The 8 canonical numbered Safe Squares (spec section 9).
+  const NUMBERED_SAFE_SQUARES = new Set([4, 12, 21, 29, 38, 46, 55, 63]);
+
+  // Four deployment/start nodes are safe; the four home-entry nodes are ordinary.
+  // Preserve the legacy export name for compatibility with existing consumers.
+  const ENTRY_SAFE_SQUARES = new Set();
+  const START_SAFE_SQUARES = new Set(Object.values(DEPLOY_NODE));
+
+  const SAFE_SQUARES = new Set([...NUMBERED_SAFE_SQUARES, ...START_SAFE_SQUARES]);
+
+  // Current ruling: 8 gold-orb nodes + 4 deployment/start nodes = 12 total.
+  const SAFE_SQUARE_COUNT = 12;
+
+  function isSafeSquare(node) {
+    return SAFE_SQUARES.has(node);
+  }
+
+  // Relative-distance model avoids modulo edge cases in movement math.
+  // r = 0            -> piece sits exactly on its own deploy node (just deployed)
+  // r = 0..67        -> shared perimeter node, including all four junction squares
+  // r = 67           -> own coloured junction square (visual H1, shared track)
+  // r = 68..74       -> private home lane H2..H8
+  // r = 75           -> HOME (terminal, locked, always safe)
+  const HOME_LANE_START_R = PERIMETER_SIZE; // 68
+  const HOME_R = PERIMETER_SIZE + 7; // 75
+
+  function perimeterNodeFromR(player, r) {
+    if (r < 0) {
+      throw new Error(`r=${r} cannot be negative`);
+    }
+    // Modulo here is what allows a Missile to complete unlimited laps:
+    // r is NOT restricted to 0..67 for Missiles (see rules.js), only Ships
+    // are capped by HOME_R. A Ship never calls this with r > HOME_R-8.
+    const deploy = DEPLOY_NODE[player];
+    return ((deploy - 1 + (r % PERIMETER_SIZE)) % PERIMETER_SIZE) + 1;
+  }
+
+  // Describe where relative distance r places a piece, in engine terms.
+  function describeR(player, r) {
+    if (r < 0) throw new Error('r cannot be negative');
+    if (r < HOME_LANE_START_R) {
+      return { state: 'PERIMETER', node: perimeterNodeFromR(player, r), r };
+    }
+    if (r < HOME_R) {
+      return { state: 'HOMELANE', homeIndex: r - HOME_LANE_START_R + 2, r }; // 2..8
+    }
+    if (r === HOME_R) {
+      return { state: 'HOME', r };
+    }
+    throw new Error(`r=${r} overshoots HOME (max is ${HOME_R})`);
+  }
+
+  return {
+    PERIMETER_SIZE,
+    PLAYERS,
+    FACTIONS,
+    DEPLOY_NODE,
+    ENTRY_NODE,
+    NUMBERED_SAFE_SQUARES,
+    ENTRY_SAFE_SQUARES,
+    START_SAFE_SQUARES,
+    SAFE_SQUARES,
+    SAFE_SQUARE_COUNT,
+    isSafeSquare,
+    HOME_LANE_START_R,
+    HOME_R,
+    perimeterNodeFromR,
+    describeR,
+  };
+})();
+
+const Rules = (() => {
+  // LODU — Rules Engine (Phase 1)
+  // Pure, deterministic game logic. No DOM, no coordinates, no timers.
+  // Kamikaze IS implemented (see canUseKamikaze / getKamikazePreview / useKamikaze below).
+  //
+  // Current ruling (Stage 11): all 12 Safe Squares prevent ALL normal
+  // enemy-on-enemy landing combat: ship/ship, ship/missile, missile/ship,
+  // missile/missile, and mixed stacks. Pieces coexist unharmed there.
+  // EXCEPTION: Kamikaze blasts DO destroy pieces on Safe Squares.
+  // The earlier R1/R2 landing-combat rulings apply ONLY to unsafe squares.
+  // Safe Squares: nodes 4,12,20,28,36,44,52,60 and four home entries.
+
+  'use strict';
+
+  function createPiece(id, owner, type) {
+    return {
+      id,
+      owner,
+      type, // 'SHIP' | 'MISSILE'
+      state: 'BASE', // BASE | PERIMETER | HOMELANE | HOME | DESTROYED
+      r: null,
+    };
+  }
+
+  function createMatch(playerList) {
+    if (playerList.length < 2 || playerList.length > 4) {
+      throw new Error('LODU supports 2-4 players');
+    }
+    const pieces = [];
+    const players = {};
+    for (const p of playerList) {
+      players[p] = {
+        color: p,
+        rearmUsed: false, // consumed the first time this player's Missile is lost
+        kamikazeUsed: false, // reserved for Phase 2
+      };
+      pieces.push(createPiece(`${p}_SHIP_1`, p, 'SHIP'));
+      pieces.push(createPiece(`${p}_SHIP_2`, p, 'SHIP'));
+      pieces.push(createPiece(`${p}_MISSILE`, p, 'MISSILE'));
+    }
+    return {
+      playerOrder: [...playerList],
+      players,
+      pieces,
+      currentPlayerIndex: 0,
+      sixesStreak: 0,
+      winner: null,
+      finishOrder: [],
+      eventLog: [],
+    };
+  }
+
+  function currentPlayer(match) {
+    return match.playerOrder[match.currentPlayerIndex];
+  }
+
+  function piecesOf(match, player) {
+    return match.pieces.filter((p) => p.owner === player && p.state !== 'DESTROYED');
+  }
+
+  function pieceById(match, id) {
+    return match.pieces.find((p) => p.id === id);
+  }
+
+  // All non-destroyed pieces (any owner) currently sitting on a given
+  // shared perimeter node.
+  function piecesOnNode(match, node) {
+    return match.pieces.filter((p) => p.state === 'PERIMETER' && p.r !== null
+      && Board.perimeterNodeFromR(p.owner, p.r) === node);
+  }
+
+  function log(match, event) {
+    match.eventLog.push(event);
+  }
+
+  // ---------- Legal move computation ----------
+
+  function getLegalMoves(match, player, roll) {
+    if (match.winner || match.finishOrder.includes(player)) return [];
+    const moves = [];
+    const canDeploy = roll === 1 || roll === 6;
+
+    for (const piece of piecesOf(match, player)) {
+      if (piece.state === 'BASE') {
+        if (canDeploy) {
+          moves.push({ pieceId: piece.id, action: 'DEPLOY' });
+        }
+        continue;
+      }
+      if (piece.state === 'HOME' || piece.state === 'DESTROYED') continue;
+
+      if (piece.type === 'MISSILE') {
+        // Missiles never enter a Home Lane and never reach HOME (Canonical
+        // Rules v1.2, Sec.2). They loop the 68-node perimeter indefinitely,
+        // so a Missile move is ALWAYS legal once deployed — there is no
+        // overshoot ceiling and crossing its own Home-entry node is normal,
+        // unremarkable travel, not a state transition.
+        const newR = piece.r + roll;
+        moves.push({ pieceId: piece.id, action: 'MOVE', newR });
+        continue;
+      }
+
+      // Ship: PERIMETER or HOMELANE, capped at HOME_R (overshoot illegal).
+      const newR = piece.r + roll;
+      if (newR > Board.HOME_R) continue;
+      moves.push({ pieceId: piece.id, action: 'MOVE', newR });
+    }
+    return moves;
+  }
+
+  // ---------- Combat resolution ----------
+  // Runs after a piece's position changes and lands on a shared perimeter node.
+  // Returns a list of capture/loss events; mutates `match` piece states.
+  function resolveLanding(match, movedPiece) {
+    const events = [];
+    if (movedPiece.state !== 'PERIMETER') return events; // no combat off-perimeter
+
+    const node = Board.perimeterNodeFromR(movedPiece.owner, movedPiece.r);
+    const safe = Board.isSafeSquare(node);
+    const others = piecesOnNode(match, node).filter((p) => p.id !== movedPiece.id);
+    const enemyMissile = others.find((p) => p.owner !== movedPiece.owner && p.type === 'MISSILE');
+    const enemyShips = others.filter((p) => p.owner !== movedPiece.owner && p.type === 'SHIP');
+
+    // Safe-square immunity applies to EVERY normal landing combination.
+    // Kamikaze is resolved separately in useKamikaze and bypasses this guard.
+    if (safe) {
+      if (enemyMissile || enemyShips.length) {
+        events.push({ type: 'CAPTURE_BLOCKED_SAFE_SQUARE', node });
+      }
+      return events;
+    }
+
+    function loseMissile(piece) {
+      const owner = match.players[piece.owner];
+      if (!owner.rearmUsed) {
+        owner.rearmUsed = true;
+        piece.state = 'BASE';
+        piece.r = null;
+        events.push({ type: 'MISSILE_LOST_REARMABLE', pieceId: piece.id, node });
+      } else {
+        piece.state = 'DESTROYED';
+        piece.r = null;
+        events.push({ type: 'MISSILE_LOST_PERMANENT', pieceId: piece.id, node });
+      }
+    }
+
+    function sendShipToBase(piece) {
+      piece.state = 'BASE';
+      piece.r = null;
+      events.push({ type: 'SHIP_CAPTURED', pieceId: piece.id, node });
+    }
+
+    if (movedPiece.type === 'MISSILE') {
+      if (enemyMissile) {
+        // Missile-vs-Missile: mutual destruction on UNSAFE squares only.
+        loseMissile(movedPiece);
+        loseMissile(enemyMissile);
+        events.push({ type: 'MISSILE_COLLISION', node, pieces: [movedPiece.id, enemyMissile.id] });
+      } else if (enemyShips.length > 0) {
+        for (const s of enemyShips) sendShipToBase(s);
+        events.push({
+          type: enemyShips.length > 1 ? 'DOUBLE_HIT' : 'DIRECT_HIT',
+          node,
+          capturedPieceIds: enemyShips.map((s) => s.id),
+        });
+      }
+    } else {
+      // movedPiece is a SHIP
+      if (enemyMissile && enemyShips.length > 0) {
+        // R2: mixed landing — resolve all three outcomes simultaneously,
+        // as a single event, not as two sequential capture steps.
+        loseMissile(enemyMissile);
+        for (const s of enemyShips) sendShipToBase(s);
+        movedPiece.state = 'BASE';
+        movedPiece.r = null;
+        events.push({
+          type: 'MIXED_LANDING_RESOLVED',
+          node,
+          movingShipId: movedPiece.id,
+          destroyedMissileId: enemyMissile.id,
+          capturedShipIds: enemyShips.map((s) => s.id),
+        });
+      } else if (enemyMissile) {
+        // Ship landing on a lone enemy Missile -> mutual destruction.
+        loseMissile(enemyMissile);
+        movedPiece.state = 'BASE';
+        movedPiece.r = null;
+        events.push({ type: 'SHIP_VS_MISSILE_MUTUAL_LOSS', node, pieces: [movedPiece.id, enemyMissile.id] });
+      } else if (enemyShips.length > 0) {
+        // Ship-lands-on-enemy-Ship capture on UNSAFE squares only.
+        for (const s of enemyShips) sendShipToBase(s);
+        events.push({ type: 'SHIP_CAPTURE_ON_LANDING', node, capturedPieceIds: enemyShips.map((s) => s.id) });
+      }
+      // Friendly pieces already on the node: no effect, they stack.
+    }
+
+    return events;
+  }
+
+  // ---------- Applying a chosen move ----------
+
+  function applyMove(match, player, chosen) {
+    if (match.winner) throw new Error('match already has a winner');
+    if (match.finishOrder.includes(player)) throw new Error('player has already finished');
+    const piece = pieceById(match, chosen.pieceId);
+    if (!piece || piece.owner !== player) throw new Error('invalid piece for this player');
+
+    const events = [];
+
+    if (chosen.action === 'DEPLOY') {
+      if (piece.state !== 'BASE') throw new Error('piece is not in BASE');
+      piece.state = 'PERIMETER';
+      piece.r = 0;
+      events.push({ type: 'DEPLOY', pieceId: piece.id, node: Board.perimeterNodeFromR(player, 0) });
+      events.push(...resolveLanding(match, piece));
+    } else if (chosen.action === 'MOVE') {
+      if (piece.state !== 'PERIMETER' && piece.state !== 'HOMELANE') {
+        throw new Error('piece cannot move from its current state');
+      }
+      const before = piece.r;
+      if (piece.type === 'MISSILE') {
+        // Missiles: pure perimeter wrap, normalize r into 0..67 so the
+        // number never grows unbounded across a long match with many laps.
+        const normalizedR = chosen.newR % Board.PERIMETER_SIZE;
+        piece.r = normalizedR;
+        piece.state = 'PERIMETER';
+        const node = Board.perimeterNodeFromR(player, normalizedR);
+        events.push({ type: 'MOVE', pieceId: piece.id, fromR: before, toR: normalizedR, resultState: 'PERIMETER', node });
+      } else {
+        const desc = Board.describeR(player, chosen.newR);
+        piece.r = chosen.newR;
+        piece.state = desc.state;
+        events.push({
+          type: 'MOVE', pieceId: piece.id, fromR: before, toR: chosen.newR, resultState: desc.state,
+          node: desc.state === 'PERIMETER' ? desc.node : undefined,
+          homeIndex: desc.state === 'HOMELANE' ? desc.homeIndex : undefined,
+        });
+        if (desc.state === 'HOME') events.push({ type: 'REACHED_HOME', pieceId: piece.id });
+      }
+      events.push(...resolveLanding(match, piece));
+    } else {
+      throw new Error(`unknown action ${chosen.action}`);
+    }
+
+    // Victory check: both of this player's Ships in HOME.
+    const ships = match.pieces.filter((p) => p.owner === player && p.type === 'SHIP');
+    if (ships.every((s) => s.state === 'HOME')) {
+      if (!match.finishOrder.includes(player)) {
+        match.finishOrder.push(player);
+        events.push({ type: 'PLACE_SECURED', player, place: match.finishOrder.length });
+        if (match.finishOrder.length === match.playerOrder.length - 1) {
+          const last = match.playerOrder.find(p => !match.finishOrder.includes(p));
+          match.finishOrder.push(last);
+          match.winner = match.finishOrder[0];
+          events.push({ type: 'VICTORY', player: match.winner, standings: match.finishOrder.slice() });
+        }
+      }
+    }
+
+    for (const e of events) log(match, e);
+    return events;
+  }
+
+  // ---------- Turn flow ----------
+  // Caller is expected to: rollDie() -> getLegalMoves() -> (if any) let the
+  // human pick one -> applyMove() -> advanceTurn(). This module never
+  // auto-picks a move for a human turn (spec Sec.5).
+
+  function rollDie(rngFn) {
+    const rng = rngFn || Math.random;
+    return 1 + Math.floor(rng() * 6);
+  }
+
+  // Returns { forfeited: bool, extraTurn: bool } and mutates sixesStreak.
+  // Call this once, right after a roll, BEFORE offering piece choices.
+  function registerRoll(match, roll) {
+    if (roll === 6) {
+      match.sixesStreak += 1;
+      if (match.sixesStreak >= 3) {
+        // 3-sixes-forfeits-turn house rule (ruling this conversation).
+        log(match, { type: 'THREE_SIXES_FORFEIT', player: currentPlayer(match) });
+        match.sixesStreak = 0;
+        return { forfeited: true, extraTurn: false };
+      }
+      return { forfeited: false, extraTurn: true };
+    }
+    // Any non-6 roll resets the streak.
+    match.sixesStreak = 0;
+    return { forfeited: false, extraTurn: false };
+  }
+
+  // Advance to the next player's turn (used when: no legal move, forfeit,
+  // or a non-extra-turn move has been resolved).
+  function advanceTurn(match) {
+    if (!match.winner) {
+      let attempts = 0;
+      do {
+        match.currentPlayerIndex = (match.currentPlayerIndex + 1) % match.playerOrder.length;
+        attempts++;
+      } while (match.finishOrder.includes(currentPlayer(match)) && attempts < match.playerOrder.length);
+    }
+    match.sixesStreak = 0;
+  }
+
+  // ---------- Kamikaze ----------
+  // Used INSTEAD of rolling the die. Sacrifices the active Missile.
+  // Footprint = current node, ±1, ±2 (5 perimeter nodes), wrap-aware.
+  // The entire footprint is resolved as ONE atomic/simultaneous event:
+  // all five affected nodes are determined up front, before anything is
+  // mutated, so no node's resolution can influence another's.
+  function canUseKamikaze(match, player) {
+    const state = match.players[player];
+    if (!state || state.kamikazeUsed) return false;
+    const missile = match.pieces.find((p) => p.owner === player && p.type === 'MISSILE');
+    return !!missile && missile.state === 'PERIMETER';
+  }
+
+  // Non-mutating preview: returns the exact center node + 5-node footprint
+  // useKamikaze() would compute right now, without touching state. This is
+  // the single source of truth for the footprint — the UI must call this
+  // rather than recomputing the ±1/±2 math itself.
+  function getKamikazePreview(match, player) {
+    if (!canUseKamikaze(match, player)) return null;
+    const missile = match.pieces.find((p) => p.owner === player && p.type === 'MISSILE');
+    const centerNode = Board.perimeterNodeFromR(player, missile.r);
+    const footprintNodes = [-2, -1, 0, 1, 2].map(
+      (offset) => (((centerNode - 1 + offset) % Board.PERIMETER_SIZE) + Board.PERIMETER_SIZE) % Board.PERIMETER_SIZE + 1,
+    );
+    return { centerNode, footprintNodes };
+  }
+
+  function useKamikaze(match, player) {
+    if (match.winner) throw new Error('match already has a winner');
+    if (match.finishOrder.includes(player)) throw new Error('player has already finished');
+    const state = match.players[player];
+    if (!state) throw new Error(`unknown player ${player}`);
+    if (state.kamikazeUsed) throw new Error('Kamikaze already used by this player');
+
+    const preview = getKamikazePreview(match, player);
+    if (!preview) {
+      throw new Error('Kamikaze requires an active (deployed, on-perimeter) Missile');
+    }
+    const { centerNode, footprintNodes } = preview; // single source of truth — see getKamikazePreview above
+    const footprintSet = new Set(footprintNodes);
+
+    // Snapshot every affected piece BEFORE any mutation, so the blast is
+    // atomic — no piece's removal affects whether another is caught.
+    // Intentional exception: Kamikaze affects Safe Squares too.
+    const affected = match.pieces.filter(
+      (p) => p.state === 'PERIMETER' && footprintSet.has(Board.perimeterNodeFromR(p.owner, p.r)),
+    );
+    const affectedShips = affected.filter((p) => p.type === 'SHIP');
+    const affectedMissiles = affected.filter((p) => p.type === 'MISSILE'); // includes the activating Missile
+
+    state.kamikazeUsed = true;
+
+    const destroyedShipIds = [];
+    for (const ship of affectedShips) {
+      ship.state = 'BASE';
+      ship.r = null;
+      destroyedShipIds.push(ship.id);
+    }
+
+    // Each Missile in the footprint (including the activating one) is
+    // processed through its OWN owner's Rearm state, independently.
+    const missileOutcomes = [];
+    for (const m of affectedMissiles) {
+      const ownerState = match.players[m.owner];
+      if (!ownerState.rearmUsed) {
+        ownerState.rearmUsed = true;
+        m.state = 'BASE';
+        m.r = null;
+        missileOutcomes.push({ pieceId: m.id, owner: m.owner, outcome: 'REARMABLE' });
+      } else {
+        m.state = 'DESTROYED';
+        m.r = null;
+        missileOutcomes.push({ pieceId: m.id, owner: m.owner, outcome: 'PERMANENT' });
+      }
+    }
+
+    const event = {
+      type: 'KAMIKAZE',
+      player,
+      centerNode,
+      footprintNodes,
+      destroyedShipIds,
+      missileOutcomes,
+    };
+    log(match, event);
+    return [event];
+  }
+
+  return {
+    createMatch,
+    currentPlayer,
+    piecesOf,
+    pieceById,
+    piecesOnNode,
+    getLegalMoves,
+    applyMove,
+    rollDie,
+    registerRoll,
+    advanceTurn,
+    canUseKamikaze,
+    getKamikazePreview,
+    useKamikaze,
+  };
+})();
+/* === EMBEDDED-ENGINE-END === */
+
+/* =========================================================================
+   LAYOUT LAYER — node/home-lane id -> screen position. No gameplay rules.
+   ========================================================================= */
+const Layout = (() => {
+  const CELL = 52, ORIGIN_X = 304, ORIGIN_Y = 78, BOARD_SIDE = CELL * 19;
+  const NORTH_LEFT = [67,66,65,64,63,62,61,60], NORTH_RIGHT = [1,2,3,4,5,6,7,8];
+  const EAST_TOP = [9,10,11,12,13,14,15,16], EAST_BOTTOM = [25,24,23,22,21,20,19,18];
+  const SOUTH_LEFT = [42,41,40,39,38,37,36,35], SOUTH_RIGHT = [26,27,28,29,30,31,32,33];
+  const WEST_TOP = [52,53,54,55,56,57,58,59], WEST_BOTTOM = [50,49,48,47,46,45,44,43];
+  const DEPLOYMENT_NODES = new Set(Object.values(Board.DEPLOY_NODE));
+  function xy(row,col){ return { x: ORIGIN_X+(col-1)*CELL+CELL/2, y: ORIGIN_Y+(row-1)*CELL+CELL/2 }; }
+  const nodePos = {};
+  for (let i=0;i<8;i++){
+    const row=i+1;
+    nodePos[NORTH_LEFT[i]]={row,col:9}; nodePos[NORTH_RIGHT[i]]={row,col:11};
+    const scol=i+12; nodePos[EAST_TOP[i]]={row:9,col:scol}; nodePos[EAST_BOTTOM[i]]={row:11,col:scol};
+    const srow=i+12; nodePos[SOUTH_LEFT[i]]={row:srow,col:9}; nodePos[SOUTH_RIGHT[i]]={row:srow,col:11};
+    const wcol=i+1; nodePos[WEST_TOP[i]]={row:9,col:wcol}; nodePos[WEST_BOTTOM[i]]={row:11,col:wcol};
+  }
+  // These four coloured end tiles are shared junctions, NOT private lane tiles.
+  nodePos[68]={row:1,col:10}; nodePos[17]={row:10,col:19};
+  nodePos[34]={row:19,col:10}; nodePos[51]={row:10,col:1};
+  const homePos = { NORTH:[], EAST:[], SOUTH:[], WEST:[] };
+  for (let hi=1; hi<=8; hi++){
+    homePos.NORTH.push({row:hi,col:10});
+    homePos.EAST.push({row:10,col:20-hi});
+    homePos.SOUTH.push({row:20-hi,col:10});
+    homePos.WEST.push({row:10,col:hi});
+  }
+  const HUB = { row:10, col:10 };
+  const DOCK_BLOCKS = {
+    NORTH: { rowRange:[1,8], colRange:[12,19] },
+    EAST:  { rowRange:[12,19], colRange:[12,19] },
+    SOUTH: { rowRange:[12,19], colRange:[1,8] },
+    WEST:  { rowRange:[1,8], colRange:[1,8] },
+  };
+  function perimeterXY(nodeId){ const p = nodePos[nodeId]; return xy(p.row,p.col); }
+  function homeLaneXY(owner, homeIndex){ const p = homePos[owner][homeIndex-1]; return xy(p.row,p.col); }
+  function tl(row,col){ return { x: ORIGIN_X+(col-1)*CELL, y: ORIGIN_Y+(row-1)*CELL }; }
+  return { CELL, ORIGIN_X, ORIGIN_Y, BOARD_SIDE, DEPLOYMENT_NODES, nodePos, homePos, HUB, DOCK_BLOCKS, perimeterXY, homeLaneXY, xy, tl };
+})();
+
+/* =========================================================================
+   PRESENTATION LAYER — everything below knows about pixels/DOM.
+   ========================================================================= */
+const FACTION = {
+  NORTH: { name: 'Bearistan', commander: 'Boris', primary: '#6b46c1', dark: '#3f2470', light: '#a78bfa', crest: '🐻' },
+  EAST:  { name: 'Aegionia', commander: 'Eagle', primary: '#2563eb', dark: '#173d8f', light: '#93c5fd', crest: '🦅' },
+  SOUTH: { name: 'Dragonia', commander: 'Long', primary: '#16a34a', dark: '#0d5c2c', light: '#86efac', crest: '🐉' },
+  WEST:  { name: 'Rangapura', commander: 'Zari', primary: '#d97706', dark: '#8a4d05', light: '#fcd34d', crest: '🦊' },
+};
+
+const customCommanderNames = Object.create(null);
+const RANKS = { NORTH:"Admiral", EAST:"Commander", SOUTH:"General", WEST:"Marshal" };
+function displayCommander(player) {
+  const name = customCommanderNames[player];
+  return name ? `${RANKS[player]} ${name}` : `${RANKS[player]} ${FACTION[player].commander}`;
+}
+
+const EVENT_TEXT = {
+  DEPLOY: (e) => ({ text: '⚓ Ship deployed', sub: `node ${e.node}` }),
+  MOVE: (e) => null, // movement itself is silent in the Battle Report; outcomes speak louder
+  REACHED_HOME: (e) => ({ text: '🏠 HOME!', sub: e.pieceId, hi: true }),
+  SHIP_CAPTURED: (e) => ({ text: '🛡 Ship captured!', sub: `node ${e.node}`, capture: true }),
+  DIRECT_HIT: (e) => ({ text: '💥 Direct hit!', sub: `node ${e.node}`, capture: true }),
+  DOUBLE_HIT: (e) => ({ text: '💥💥 Double hit!', sub: `node ${e.node}`, capture: true }),
+  CAPTURE_BLOCKED_SAFE_SQUARE: (e) => ({ text: '🛡 Blocked — Safe Square', sub: `node ${e.node}` }),
+  MISSILE_COLLISION: (e) => ({ text: '☢ Missile collision!', sub: `node ${e.node}`, capture: true }),
+  SHIP_VS_MISSILE_MUTUAL_LOSS: (e) => ({ text: '💥 Ship and Missile collision!', sub: `node ${e.node}`, capture: true }),
+  MIXED_LANDING_RESOLVED: (e) => ({ text: '💥 Ship and Missile collision!', sub: `node ${e.node}`, capture: true }),
+  SHIP_CAPTURE_ON_LANDING: (e) => ({ text: '⚔ Ship captured!', sub: `node ${e.node}`, capture: true }),
+  MISSILE_LOST_REARMABLE: (e) => ({ text: '🚀 Missile rearmed!', sub: e.pieceId }),
+  MISSILE_LOST_PERMANENT: (e) => ({ text: '☠ Missile destroyed!', sub: 'no rearm left', capture: true }),
+  THREE_SIXES_FORFEIT: (e) => ({ text: '🎲🎲🎲 Three sixes — turn forfeited', sub: e.player }),
+  KAMIKAZE: (e) => ({ text: '☢ KAMIKAZE!', sub: `${e.destroyedShipIds.length} ship(s), ${e.missileOutcomes.length} missile(s) destroyed`, hi: true }),
+  VICTORY: (e) => ({ text: `🏆 ${FACTION[e.player].name.toUpperCase()} WINS!`, sub: '', hi: true }),
+};
+
+let match = null, players = [], pendingRoll = null, legalMoves = [], lastRolledFace = null;
+let onlineMode=false, onlineMine=null, onlineState=null, onlineSocket=null, onlineYou=null, onlineVersion=-1, onlineStarted=false;
+let onlineMessageQueue=Promise.resolve();
+
+// First-deployment balancing: one activation per faction, per match.
+// A faction becomes eligible only after another faction has deployed and
+// it has subsequently failed three normal 1-or-6 rolls while still in base.
+let firstDeployAssist = {};
+function resetFirstDeployAssist() {
+  firstDeployAssist = Object.fromEntries(players.map(p => [p, {
+    everDeployed: false, failuresAfterOpponent: 0, activated: false, spent: false
+  }]));
+}
+function noteFirstDeployment(player, move, before) {
+  const assist = firstDeployAssist[player];
+  if (!assist || assist.everDeployed) return;
+  const previous = before[move.pieceId];
+  const current = match.pieces.find(p => p.id === move.pieceId);
+  if (previous && previous.state === 'BASE' && current && current.state !== 'BASE') {
+    assist.everDeployed = true;
+    assist.activated = false;
+    assist.spent = true;
+  }
+}
+function balancedOpeningRoll(player) {
+  const assist = firstDeployAssist[player];
+  const otherDeployed = Object.entries(firstDeployAssist).some(([p, a]) => p !== player && a.everDeployed);
+  const eligible = !!assist && !assist.everDeployed && !assist.spent && otherDeployed;
+  // A single continuous boosted window; never reactivates after first deployment.
+  if (eligible && assist.failuresAfterOpponent >= 3) {
+    assist.activated = true;
+    const r = Math.random();
+    // P(1)=P(6)=1/4, P(2..5)=1/8 each.
+    if (r < .25) return 1;
+    if (r < .50) return 6;
+    return 2 + Math.floor((r - .50) * 8);
+  }
+  return Rules.rollDie();
+}
+function noteOpeningRoll(player, roll) {
+  const assist = firstDeployAssist[player];
+  if (!assist || assist.everDeployed || assist.spent) return;
+  if (!Object.entries(firstDeployAssist).some(([p, a]) => p !== player && a.everDeployed)) return;
+  if (roll !== 1 && roll !== 6 && !assist.activated) assist.failuresAfterOpponent++;
+}
+
+let isAnimating = false; // guards against desync from rapid/overlapping input (Phase B)
+
+/* ---------- static board art (path, markers, home lanes, hub, docks) ---------- */
+/* ---------- premium piece artwork (Phase E — final miniature design) ----------
+   Pure functions of faction colors + a unique key (for gradient-id
+   isolation across many simultaneously-rendered <svg> pieces). No
+   gameplay data is read or baked in here — piece.type/.owner/.state/.r
+   are resolved entirely by the caller before these are invoked.
+
+   Design brief: premium molded tabletop miniature, not flat UI iconography.
+   Ship = strong horizontal silhouette, layered hull + raised offset bridge
+   + rear engine nacelle. Missile = strong vertical silhouette, tri-fin tail
+   + tapered body + angular warhead nose. Deliberately different structural
+   grammar (horizontal/layered vs. vertical/tapered) so the two remain
+   instantly distinguishable at ~40px, not just re-tinted variants. */
+function shipIconSVG(f, key) {
+  const g = `ship-${key}`;
+  return `
+    <defs>
+      <linearGradient id="${g}-hull" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${f.light}"/>
+        <stop offset="38%" stop-color="${f.primary}"/>
+        <stop offset="100%" stop-color="${f.dark}"/>
+      </linearGradient>
+      <linearGradient id="${g}-bridge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${f.light}"/>
+        <stop offset="100%" stop-color="${f.primary}"/>
+      </linearGradient>
+      <linearGradient id="${g}-keel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${f.dark}"/>
+        <stop offset="100%" stop-color="#1a140c"/>
+      </linearGradient>
+      <radialGradient id="${g}-engine" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff8df"/>
+        <stop offset="55%" stop-color="#ffd27a"/>
+        <stop offset="100%" stop-color="#b5601c"/>
+      </radialGradient>
+      <radialGradient id="${g}-visor" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#dff6ff"/>
+        <stop offset="65%" stop-color="#274050"/>
+        <stop offset="100%" stop-color="#0a1318"/>
+      </radialGradient>
+    </defs>
+
+    <!-- contact shadow: gives the piece physical weight on the tile -->
+    <ellipse cx="26" cy="35.5" rx="20" ry="4.6" fill="#000" opacity="0.32"/>
+
+    <!-- lower keel layer (darkest structural layer, sits beneath the hull) -->
+    <path d="M8 27 L44 27 L41 31.5 Q26 33.5 11 31.5 Z" fill="url(#${g}-keel)" stroke="#140f08" stroke-width="0.8"/>
+
+    <!-- main hull: chunky, slightly asymmetric, tapered bow -->
+    <path d="M6.5 22.5
+             Q6 17.5 12 15.5
+             L21 14
+             L34 14.5
+             Q41 15 43.5 20
+             Q45.5 23.5 43 27
+             Q37 29.3 26 29.3
+             Q14.5 29.3 9 27
+             Q6.8 25 6.5 22.5 Z"
+      fill="url(#${g}-hull)" stroke="#241c12" stroke-width="1.15"/>
+    <!-- hull top highlight sliver (specular, restrained) -->
+    <path d="M10.5 17.5 Q21 14.7 33.5 15.3 Q26 17.6 16 18.2 Q12.8 18.3 10.5 17.5 Z"
+      fill="#ffffff" opacity="0.22"/>
+    <!-- panel line detail -->
+    <path d="M11 23.6 Q26 25.6 41 23.4" fill="none" stroke="#1c1610" stroke-width="0.7" opacity="0.4"/>
+    <path d="M16 20.4 L16 26.2 M26 20.8 L26 26.6 M35 20.4 L35 26" stroke="#1c1610" stroke-width="0.55" opacity="0.28"/>
+
+    <!-- raised bridge module, offset toward the bow for asymmetry -->
+    <path d="M15.5 14.2 Q16 8.6 22 8 L29 8.3 Q33.4 8.8 33.6 14 Z"
+      fill="url(#${g}-bridge)" stroke="#241c12" stroke-width="1"/>
+    <rect x="18.4" y="10.4" width="12.2" height="2.6" rx="1.3" fill="url(#${g}-visor)"/>
+    <!-- small sensor spike, breaks up symmetry -->
+    <rect x="27.2" y="4.2" width="1.6" height="4.6" fill="#e8c766"/>
+    <circle cx="28" cy="4" r="1.35" fill="${f.light}" stroke="#241c12" stroke-width="0.6"/>
+
+    <!-- rear engine nacelle -->
+    <path d="M41.5 19.5 L47.5 21 Q49.5 23.5 47.5 26.5 L41 27.8 Z"
+      fill="${f.dark}" stroke="#241c12" stroke-width="1"/>
+    <ellipse cx="46.6" cy="23.6" rx="2.5" ry="3.1" fill="url(#${g}-engine)"/>
+
+    <!-- small stabilizer fin underneath, adds silhouette asymmetry -->
+    <path d="M14 28.6 L10.5 34 L17 30.2 Z" fill="${f.dark}" stroke="#241c12" stroke-width="0.8"/>
+
+    <!-- nav light accent -->
+    <circle cx="9" cy="21.5" r="1.1" fill="#8fe8b0"/>`;
+}
+
+function missileIconSVG(f, key) {
+  const g = `msl-${key}`;
+  return `
+    <defs>
+      <linearGradient id="${g}-body" x1="0" y1="0" x2="1" y2="0.15">
+        <stop offset="0%" stop-color="${f.light}"/>
+        <stop offset="45%" stop-color="${f.primary}"/>
+        <stop offset="100%" stop-color="${f.dark}"/>
+      </linearGradient>
+      <linearGradient id="${g}-fin" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${f.dark}"/>
+        <stop offset="100%" stop-color="#1a140c"/>
+      </linearGradient>
+      <radialGradient id="${g}-engine" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff8df"/>
+        <stop offset="55%" stop-color="#ffd27a"/>
+        <stop offset="100%" stop-color="#b5601c"/>
+      </radialGradient>
+      <linearGradient id="${g}-tip" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3a2f28"/>
+        <stop offset="100%" stop-color="#171310"/>
+      </linearGradient>
+    </defs>
+
+    <!-- contact shadow -->
+    <ellipse cx="26" cy="43.5" rx="10.5" ry="3.4" fill="#000" opacity="0.32"/>
+
+    <!-- tail fin assembly: three fins, asymmetric stagger for a "purpose
+         built ordnance" read rather than a symmetric toy-rocket silhouette -->
+    <path d="M17 33 L8 42.5 L17.5 38.5 Z" fill="url(#${g}-fin)" stroke="#140f08" stroke-width="0.8"/>
+    <path d="M35 33 L44 42.5 L34.5 38.5 Z" fill="url(#${g}-fin)" stroke="#140f08" stroke-width="0.8"/>
+    <path d="M26 35 L26 45 L30.5 40.5 Z" fill="${f.dark}" stroke="#140f08" stroke-width="0.8" opacity="0.94"/>
+
+    <!-- engine glow at the base -->
+    <ellipse cx="26" cy="36.5" rx="4.3" ry="3" fill="url(#${g}-engine)"/>
+
+    <!-- main tapered body -->
+    <path d="M26 4
+             Q34.5 12 34 24
+             L33.3 34.5
+             Q26 37 18.7 34.5
+             L18 24
+             Q17.5 12 26 4 Z"
+      fill="url(#${g}-body)" stroke="#241c12" stroke-width="1.15"/>
+
+    <!-- warhead tip band: contrasting dark painted nose, aggressive accent -->
+    <path d="M26 4 Q30.5 8.7 31.6 15.3 Q26 17.6 20.4 15.3 Q21.5 8.7 26 4 Z"
+      fill="url(#${g}-tip)" stroke="#0e0c09" stroke-width="0.9"/>
+    <path d="M23.2 8.6 Q26 6 28.8 8.6" fill="none" stroke="#544838" stroke-width="0.6" opacity="0.5"/>
+
+    <!-- body ridge bands (mechanical detailing, reads as segmented casing) -->
+    <path d="M18.3 21 L33.7 21" stroke="#1c1610" stroke-width="0.8" opacity="0.4"/>
+    <path d="M18.5 27.5 L33.5 27.5" stroke="#1c1610" stroke-width="0.8" opacity="0.4"/>
+    <rect x="23.4" y="22.4" width="5.2" height="3.8" rx="1" fill="${f.dark}" opacity="0.55"/>
+
+    <!-- top highlight sliver -->
+    <path d="M22.3 10 Q26 7 29.7 10 Q26 12 22.3 10 Z" fill="#ffffff" opacity="0.28"/>
+
+    <!-- small intake vents on either flank -->
+    <circle cx="19.3" cy="29.5" r="1" fill="#0e0c09" opacity="0.6"/>
+    <circle cx="32.7" cy="29.5" r="1" fill="#0e0c09" opacity="0.6"/>`;
+}
+
+function buildBoardArt() {
+  let svg = '';
+  const loopPts = []; for (let n=1;n<=Board.PERIMETER_SIZE;n++) loopPts.push(Layout.perimeterXY(n));
+  const loopD = 'M ' + loopPts.map(p=>`${p.x},${p.y}`).join(' L ') + ' Z';
+  svg += `<g class="perimeter-path">
+    <path d="${loopD}" fill="none" stroke="#1e1608" stroke-width="${Layout.CELL-2}" stroke-linejoin="round" stroke-linecap="round" opacity="0.55"/>
+    <path d="${loopD}" fill="none" stroke="url(#pathStone)" stroke-width="${Layout.CELL-8}" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${loopD}" fill="none" stroke="url(#pathWood)" stroke-width="${Layout.CELL-8}" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+    <path d="${loopD}" fill="none" stroke="#fff3d0" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" opacity="0.28" transform="translate(0,-${Layout.CELL/2-5})"/>
+  </g>`;
+
+  // STAGE 10 — individual stone/ivory tiles: every tile is positioned from
+  // Layout, never inferred from an illustration. Exactly 68 shared squares
+  // and 28 private lane squares, all with stable semantic data attributes.
+  // The tiles are purely decorative: Rules remains the only movement authority.
+  svg += `<g id="stoneTrack" pointer-events="none">`;
+  const trackCells = [];
+  for (let node=1;node<=Board.PERIMETER_SIZE;node++) {
+    const c=Layout.nodePos[node];
+    trackCells.push({row:c.row,col:c.col,node});
+  }
+  for (const c of trackCells) {
+    const t=Layout.tl(c.row,c.col), pad=2.1, w=Layout.CELL-2*pad;
+    const grain=(c.row*17+c.col*29)%5;
+    const isSafe=Board.isSafeSquare(c.node);
+    svg += `<g class="stone-tile" data-track-node="${c.node}">
+      <rect x="${t.x+pad}" y="${t.y+pad+2}" width="${w}" height="${w}" rx="2.5" fill="#251b12" opacity=".9"/>
+      <rect x="${t.x+pad}" y="${t.y+pad}" width="${w}" height="${w}" rx="2.5" fill="${grain===0?'#f4e6c9':grain===1?'#e8d7b8':grain===2?'#f1e0c1':grain===3?'#e2d0af':'#f0dfc0'}" stroke="#85643a" stroke-width="1.5"/>
+      <path d="M ${t.x+6} ${t.y+8} H ${t.x+Layout.CELL-8}" stroke="#fff9e6" stroke-width="1.5" opacity=".7"/>
+      <path d="M ${t.x+8} ${t.y+Layout.CELL-7} H ${t.x+Layout.CELL-8}" stroke="#85643a" stroke-width=".8" opacity=".3"/>
+      ${isSafe?`<path d="M ${t.x+8} ${t.y+8} l6 0 M ${t.x+Layout.CELL-14} ${t.y+Layout.CELL-8} l6 0" stroke="#aa8244" stroke-width="1.6"/>`:''}
+    </g>`;
+  }
+  svg += `</g>`;
+  // Gold-trimmed, faction-coloured home tiles; separate from the shared track.
+  svg += `<g id="homeLaneTiles" pointer-events="none">`;
+  for (const owner of Board.PLAYERS) {
+    const f=FACTION[owner];
+    for (let hi=1;hi<=8;hi++) {
+      const cell=Layout.homePos[owner][hi-1], t=Layout.tl(cell.row,cell.col), pad=2.1;
+      svg += `<g class="home-tile" data-home-owner="${owner}" data-home-index="${hi}">
+        <rect x="${t.x+pad}" y="${t.y+pad+2}" width="${Layout.CELL-2*pad}" height="${Layout.CELL-2*pad}" rx="2.5" fill="#20180e"/>
+        <rect x="${t.x+pad}" y="${t.y+pad}" width="${Layout.CELL-2*pad}" height="${Layout.CELL-2*pad}" rx="2.5" fill="${f.primary}" stroke="#d2a860" stroke-width="1.7"/>
+        <rect x="${t.x+7}" y="${t.y+7}" width="${Layout.CELL-14}" height="${Layout.CELL-14}" rx="1" fill="none" stroke="${f.light}" stroke-width="1" opacity=".55"/>
+        <path d="M ${t.x+10} ${t.y+12} H ${t.x+Layout.CELL-10}" stroke="#fff4d0" stroke-width="1.5" opacity=".28"/>
+      </g>`;
+    }
+  }
+  svg += `</g>`;
+
+  // Node markers: unchanged deployment markers > gold-orb safe markers > ordinary beige nodes
+  for (let n=1;n<=Board.PERIMETER_SIZE;n++) {
+    const p = Layout.perimeterXY(n);
+    const isDeploy = Layout.DEPLOYMENT_NODES.has(n);
+    const isSafe = Board.isSafeSquare(n);
+    if (isDeploy) {
+      const owner = Object.keys(Board.DEPLOY_NODE).find(o => Board.DEPLOY_NODE[o] === n);
+      const f = FACTION[owner];
+      svg += `<g class="deploy-marker" data-node="${n}">
+        <circle cx="${p.x}" cy="${p.y}" r="13" fill="${f.primary}" stroke="#fff3d0" stroke-width="2"/>
+        <circle cx="${p.x}" cy="${p.y}" r="16" fill="none" stroke="${f.dark}" stroke-width="1" opacity="0.6"/>
+        <text x="${p.x}" y="${p.y+6}" font-size="18" text-anchor="middle" fill="#12151b">⚓</text>
+      </g>`;
+    } else if (isSafe) {
+      svg += `<g class="safe-marker" data-node="${n}">
+        <circle cx="${p.x}" cy="${p.y}" r="11.5" fill="url(#goldGem)" stroke="#6b4e12" stroke-width="1.3"/>
+        <circle cx="${p.x}" cy="${p.y}" r="4" fill="#fff8df" opacity="0.65"/>
+      </g>`;
+    } else if (Object.values(Board.ENTRY_NODE).includes(n)) {
+      // Coloured shared junction: no ordinary beige-track marker on top.
+    } else {
+      svg += `<g class="seam-marker" data-node="${n}">
+        <circle cx="${p.x}" cy="${p.y}" r="6.5" fill="none" stroke="#5a4a30" stroke-width="1.1" opacity="0.4"/>
+        <circle cx="${p.x}" cy="${p.y}" r="6.5" fill="none" stroke="#fff3d0" stroke-width="0.6" opacity="0.25" transform="translate(0,-1)"/>
+        <circle cx="${p.x}" cy="${p.y}" r="2.6" fill="#3a2f1f" opacity="0.4"/>
+      </g>`;
+    }
+    svg += `<text class="debug-label" x="${p.x}" y="${p.y-14}" text-anchor="middle">${n}</text>`;
+  }
+
+  // home lanes
+  for (const owner of Board.PLAYERS) {
+    const f = FACTION[owner];
+    const entryNode = Board.ENTRY_NODE[owner];
+    const pts = [Layout.perimeterXY(entryNode), ...Array.from({length:7},(_,i)=>Layout.homeLaneXY(owner,i+2))];
+    const d = 'M ' + pts.map(p=>`${p.x},${p.y}`).join(' L ');
+    // Lane surfaces are drawn as eight individual square tiles above.
+    // Retain only a fine, low-opacity directional centreline.
+    svg += `<g class="home-lane"><path d="${d}" fill="none" stroke="${f.light}" stroke-width="1" opacity=".25"/></g>`;
+    for (let hi=1; hi<=8; hi++) { const p = Layout.homeLaneXY(owner,hi); svg += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${f.light}" opacity="0.55"/>`; }
+    const last = pts[pts.length-1];
+    svg += `<g class="home-crest"><circle cx="${last.x}" cy="${last.y}" r="15" fill="url(#homeGlow${owner})" stroke="#fff3d0" stroke-width="1.5"/>
+      <text x="${last.x}" y="${last.y+6}" font-size="15" text-anchor="middle">${f.crest}</text></g>`;
+  }
+
+  // hub
+  const hubXY = Layout.xy(Layout.HUB.row, Layout.HUB.col);
+  const hubSize = Layout.CELL*3;
+  svg += `<g class="hub">
+    <circle cx="${hubXY.x}" cy="${hubXY.y}" r="${hubSize*0.62}" fill="url(#hubOuterGlow)"/>
+    <circle cx="${hubXY.x}" cy="${hubXY.y}" r="${hubSize*0.5}" fill="url(#hubPlate)" stroke="#6b4e12" stroke-width="3"/>
+    <circle cx="${hubXY.x}" cy="${hubXY.y}" r="${hubSize*0.5}" fill="none" stroke="#fff3d0" stroke-width="1" opacity="0.35"/>
+    ${Array.from({length:24}).map((_,i)=>{ const deg=i*15, rad=deg*Math.PI/180, r1=hubSize*0.4, r2=hubSize*0.47;
+      const x1=hubXY.x+Math.cos(rad)*r1,y1=hubXY.y+Math.sin(rad)*r1,x2=hubXY.x+Math.cos(rad)*r2,y2=hubXY.y+Math.sin(rad)*r2;
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#e8c766" stroke-width="${i%2===0?1.4:0.7}" opacity="${i%2===0?0.6:0.3}"/>`; }).join('')}
+    <circle cx="${hubXY.x}" cy="${hubXY.y}" r="${hubSize*0.33}" fill="none" stroke="#c9a227" stroke-width="1.4" opacity="0.65"/>
+    <circle cx="${hubXY.x}" cy="${hubXY.y}" r="${hubSize*0.24}" fill="none" stroke="#c9a227" stroke-width="0.8" opacity="0.4"/>
+    <circle cx="${hubXY.x}" cy="${hubXY.y}" r="${hubSize*0.19}" fill="url(#hubCore)" stroke="#fff3d0" stroke-width="1.4"/>
+    <text x="${hubXY.x}" y="${hubXY.y+11}" font-size="30" text-anchor="middle">⚓</text>
+  </g>`;
+
+  // HARBOUR-ONLY REFRESH — octagonal faction-coloured harbour inspired by
+  // the supplied reference. Decorative SVG only: movement, docks, hitboxes,
+  // home lanes, dice, audio, player names and game rules are untouched.
+  for (const owner of Board.PLAYERS) {
+    const f = FACTION[owner], block = Layout.DOCK_BLOCKS[owner];
+    const t = Layout.tl(block.rowRange[0], block.colRange[0]);
+    const x=t.x+10, y=t.y+10, w=Layout.CELL*8-20, h=Layout.CELL*8-20;
+    const cx=x+w/2, cy=y+h/2;
+    const oct = (inset,cut) => {
+      const xx=x+inset, yy=y+inset, ww=w-2*inset, hh=h-2*inset;
+      return `${xx+cut},${yy} ${xx+ww-cut},${yy} ${xx+ww},${yy+cut} ${xx+ww},${yy+hh-cut} ${xx+ww-cut},${yy+hh} ${xx+cut},${yy+hh} ${xx},${yy+hh-cut} ${xx},${yy+cut}`;
+    };
+    const anchors = [[x+76,y+76,-38],[x+w-76,y+76,38],[x+76,y+h-76,38],[x+w-76,y+h-76,-38]];
+    svg += `<g class="stage13-harbour" data-owner="${owner}" pointer-events="none">
+      <defs>
+        <linearGradient id="refHarbour${owner}" x1="0" y1="0" x2=".92" y2="1">
+          <stop offset="0" stop-color="${f.light}" stop-opacity=".70"/>
+          <stop offset=".34" stop-color="${f.primary}" stop-opacity=".96"/>
+          <stop offset="1" stop-color="${f.dark}" stop-opacity=".98"/>
+        </linearGradient>
+        <radialGradient id="refHarbourLight${owner}" cx=".48" cy=".4" r=".8">
+          <stop offset="0" stop-color="#fff2c0" stop-opacity=".13"/>
+          <stop offset="1" stop-color="#000" stop-opacity=".23"/>
+        </radialGradient>
+      </defs>
+      <polygon points="${oct(0,55)}" fill="#2b241d" stroke="#100f0b" stroke-width="8"/>
+      <polygon points="${oct(6,54)}" fill="#544334" stroke="#f1c47a" stroke-width="4"/>
+      <polygon points="${oct(17,50)}" fill="url(#refHarbour${owner})" stroke="#211b18" stroke-width="5"/>
+      <polygon points="${oct(24,48)}" fill="url(#refHarbourLight${owner})" stroke="#e9bd6a" stroke-width="2.5"/>
+      <polygon points="${oct(35,43)}" fill="none" stroke="#ffdf8b" stroke-width="1.5" opacity=".66"/>
+      <!-- Central ring and cardinal diamond studs echo the reference image. -->
+      <circle cx="${cx}" cy="${cy}" r="${w*.205}" fill="none" stroke="#573b20" stroke-width="4" opacity=".65"/>
+      <circle cx="${cx}" cy="${cy}" r="${w*.205}" fill="none" stroke="#f3c76b" stroke-width="2.5"/>
+      ${[[cx,cy-w*.205],[cx+w*.205,cy],[cx,cy+w*.205],[cx-w*.205,cy]].map(([px,py])=>`<path d="M ${px} ${py-9} l8 9 -8 9 -8 -9 Z" fill="#dfab58" stroke="#5b3519" stroke-width="1.6"/>`).join('')}
+      <!-- Four small engraved anchors; never interfere with dock pieces. -->
+      ${anchors.map(([ax,ay,rot])=>`<g transform="translate(${ax},${ay}) rotate(${rot})" fill="none" stroke="#f0c36e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".92">
+        <circle cx="0" cy="-15" r="4"/><path d="M0 -11 V16 M-8 -5 H8 M-17 5 Q-15 21 0 20 Q15 21 17 5 M-17 5 l-5 6 M17 5 l5 6"/>
+      </g>`).join('')}
+    </g>`;
+  }
+
+  return svg;
+}
+
+function dockSlotXY(owner, slot) {
+  // slot: 0/1 = ship slots, 2 = missile slot — matches the dock art composition.
+  // Deliberate triangular/fleet arrangement: two Ships side by side "in
+  // front," the Missile centered "behind" them — reads as one composed
+  // unit rather than three independently-placed dots.
+  const b = Layout.DOCK_BLOCKS[owner]; const tlp = Layout.tl(b.rowRange[0], b.colRange[0]);
+  const w = Layout.CELL*8, h = Layout.CELL*8; const cxp = tlp.x+w/2, cyp = tlp.y+h/2;
+  if (slot === 0) return { x: cxp-40, y: cyp+34 };
+  if (slot === 1) return { x: cxp+40, y: cyp+34 };
+  return { x: cxp, y: cyp+72 };
+}
+
+// HOME placement: two symmetric slots flanking the home crest badge,
+// nudged slightly further toward the hub than H8 for a "having arrived"
+// feel, and offset perpendicular to the home-lane direction so both
+// Ships stay clearly visible rather than stacking on the badge. Built
+// entirely from the existing Layout functions — no new coordinate system.
+function homeSlotXY(owner, slotIndex) {
+  const base = Layout.homeLaneXY(owner, 8);
+  const hub = Layout.xy(Layout.HUB.row, Layout.HUB.col);
+  const dx = hub.x - base.x, dy = hub.y - base.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist, uy = dy / dist;   // unit vector: H8 -> hub center
+  const px = -uy, py = ux;                // perpendicular unit vector
+  const pull = 9;                         // nudge toward hub, "arrived" feel
+  const spread = 21;                      // perpendicular separation between the two Ships
+  const side = slotIndex === 0 ? -1 : 1;
+  return { x: base.x + ux * pull + px * spread * side, y: base.y + uy * pull + py * spread * side };
+}
+
+// Resolves WHICH of the two HOME slots a given piece belongs in, by
+// arrival order among the owner's currently-HOME ships in live match
+// state. Shared by the static renderer and the animation engine so both
+// always agree on the same slot for the same piece.
+function resolveHomeXY(owner, pieceId) {
+  const homeShips = match.pieces.filter((p) => p.owner === owner && p.type === 'SHIP' && p.state === 'HOME');
+  const idx = homeShips.findIndex((p) => p.id === pieceId);
+  return homeSlotXY(owner, idx === -1 ? 0 : idx);
+}
+
+function pieceXY(piece) {
+  if (piece.state === 'PERIMETER') return Layout.perimeterXY(Board.perimeterNodeFromR(piece.owner, piece.r));
+  if (piece.state === 'HOMELANE') { const desc = Board.describeR(piece.owner, piece.r); return Layout.homeLaneXY(piece.owner, desc.homeIndex); }
+  if (piece.state === 'HOME') return resolveHomeXY(piece.owner, piece.id);
+  if (piece.state === 'BASE') {
+    const siblings = match.pieces.filter(p => p.owner === piece.owner && p.type === piece.type);
+    const slot = piece.type === 'MISSILE' ? 2 : siblings.indexOf(piece);
+    return dockSlotXY(piece.owner, slot);
+  }
+  return null; // DESTROYED not drawn on the board
+}
+
+function renderPieces() {
+  const layer = document.getElementById('pieceLayer');
+  layer.innerHTML = '';
+  const grouped = {};
+  for (const piece of match.pieces) {
+    if (piece.state === 'DESTROYED' || piece.state === 'HOME') continue;
+    const pos = pieceXY(piece); if (!pos) continue;
+    const key = `${Math.round(pos.x)},${Math.round(pos.y)}`;
+    (grouped[key] = grouped[key] || []).push({ piece, pos });
+  }
+  for (const key in grouped) {
+    const stack = grouped[key];
+    stack.forEach((entry, i) => {
+      const f = FACTION[entry.piece.owner];
+      const el = document.createElement('div');
+      el.className = 'piece';
+      if (entry.piece.state === 'HOME') el.classList.add('piece-home');
+      el.dataset.pieceId = entry.piece.id;
+      // Slightly larger stacking offsets than Phase C, tuned for the
+      // chunkier Phase D hull/pod silhouettes so overlapping pieces on
+      // a shared node stay individually readable instead of blurring
+      // into one shape.
+      const offsetX = stack.length > 1 ? (i * 20 - (stack.length - 1) * 10) : 0;
+      const offsetY = stack.length > 1 ? i * -13 : 0;
+      el.dataset.offsetX = offsetX;
+      el.dataset.offsetY = offsetY;
+      el.style.left = (entry.pos.x + offsetX) + 'px';
+      el.style.top = (entry.pos.y + offsetY) + 'px';
+      // Missiles render above Ships in a shared stack — their silhouette
+      // is smaller, so they're the piece most at risk of being buried.
+      el.style.zIndex = String(10 + i + (entry.piece.type === 'MISSILE' ? 5 : 0));
+      const shipNumber = entry.piece.type === 'SHIP' ? match.pieces.filter(p => p.owner === entry.piece.owner && p.type === 'SHIP').findIndex(p => p.id === entry.piece.id) + 1 : 0;
+      el.innerHTML = `<svg viewBox="0 0 52 52" width="46" height="46">${entry.piece.type === 'MISSILE' ? missileIconSVG(f, entry.piece.id) : shipIconSVG(f, entry.piece.id)}</svg>${shipNumber ? `<span class="ship-number" aria-label="Ship ${shipNumber}">${shipNumber}</span>` : ''}`;
+      if (shipNumber) el.setAttribute('aria-label', `${f.name} Ship ${shipNumber}`);
+      const isLegal = legalMoves.some(mv => mv.pieceId === entry.piece.id);
+      if (isLegal && !isAnimating && (!onlineMode || onlineMine===Rules.currentPlayer(match))) { el.classList.add('selectable'); el.addEventListener('click', () => choosePiece(entry.piece.id)); }
+      layer.appendChild(el);
+    });
+  }
+}
+
+/* =========================================================================
+   ANIMATION ENGINE (Phase B) — pure presentation. Every function here only
+   READS already-committed match state (or a pre-call snapshot of it) and
+   moves DOM elements around; nothing here calls a Rules mutator or decides
+   a gameplay outcome. The sequence for every player action is:
+     1. snapshot pre-call visual positions (from the OLD match state)
+     2. call the real Rules function (already-tested, unchanged)
+     3. animate purely from snapshot -> new committed state
+     4. refresh() to guarantee the DOM matches match exactly
+   ========================================================================= */
+function sleep(ms) { return new Promise((res) => setTimeout(res, ms)); }
+
+function dockXYFor(owner, type, pieceId) {
+  // Same slotting rule as pieceXY(): ship slot = index among that owner's
+  // ships; missile always slot 2. Used for both real and snapshot lookups.
+  if (type === 'MISSILE') return dockSlotXY(owner, 2);
+  const shipIds = match.pieces.filter(p => p.owner === owner && p.type === 'SHIP').map(p => p.id);
+  return dockSlotXY(owner, shipIds.indexOf(pieceId));
+}
+
+// Position for a piece given an arbitrary {state, r} snapshot (not necessarily
+// the piece's current live state) — lets us compute "where was this piece
+// on screen right before the rules call" without mutating anything.
+function xyForSnapshot(pieceId, owner, type, snap) {
+  if (snap.state === 'PERIMETER') return Layout.perimeterXY(Board.perimeterNodeFromR(owner, snap.r));
+  if (snap.state === 'HOMELANE') { const d = Board.describeR(owner, snap.r); return Layout.homeLaneXY(owner, d.homeIndex); }
+  if (snap.state === 'HOME') return resolveHomeXY(owner, pieceId);
+  return dockXYFor(owner, type, pieceId); // BASE (and DESTROYED, which has no live position anyway)
+}
+
+function snapshotAll() {
+  const snap = {};
+  for (const p of match.pieces) snap[p.id] = { state: p.state, r: p.r };
+  return snap;
+}
+
+function getOrCreatePieceEl(pieceId) {
+  let el = document.querySelector(`.piece[data-piece-id="${pieceId}"]`);
+  if (el) return el;
+  // Piece has no DOM element yet (shouldn't normally happen since docked
+  // pieces are always rendered) — fall back to a full render pass.
+  renderPieces();
+  return document.querySelector(`.piece[data-piece-id="${pieceId}"]`);
+}
+
+function movePieceElTo(pieceId, x, y) {
+  const el = getOrCreatePieceEl(pieceId);
+  if (!el) return;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+}
+
+
+// Phase 2I Stage 7 — cosmetic effects only. All coordinates are existing
+// Layout coordinates, and these functions never access Rules mutators.
+function emitBattleWake(x, y, missile=false) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer=document.getElementById('battleFxLayer'); if (!layer) return;
+  const ring=document.createElement('span');
+  ring.className='battle-wake'+(missile?' missile':'');
+  ring.style.left=x+'px'; ring.style.top=y+'px';
+  layer.appendChild(ring); setTimeout(()=>ring.remove(),760);
+}
+function emitBattleImpact(x,y) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer=document.getElementById('battleFxLayer'); if (!layer) return;
+  const ring=document.createElement('span'); ring.className='battle-impact';
+  ring.style.left=x+'px';ring.style.top=y+'px';layer.appendChild(ring);
+  setTimeout(()=>ring.remove(),700);
+  for(let i=0;i<12;i++) {
+    const a=(Math.PI*2*i)/12, radius=42+(i%3)*12;
+    const spark=document.createElement('span'); spark.className='battle-spark';
+    spark.style.left=x+'px';spark.style.top=y+'px';
+    spark.style.setProperty('--dx',Math.cos(a)*radius+'px');
+    spark.style.setProperty('--dy',Math.sin(a)*radius+'px');
+    layer.appendChild(spark);setTimeout(()=>spark.remove(),720);
+  }
+  const frame=document.querySelector('.board-frame');
+  if(frame){frame.classList.remove('battle-rumble');void frame.offsetWidth;frame.classList.add('battle-rumble');setTimeout(()=>frame.classList.remove('battle-rumble'),400);}
+}
+
+// Short, gentle nautical wooden-tap SFX for EVERY animated piece hop.
+// Web Audio is initialized only after a player gesture (Safari-friendly).
+// Pure presentation: sound never changes movement timing, rolls or rules.
+let movementAudioContext = null;
+function unlockLoduAudio(){
+  try {
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    if(!movementAudioContext) movementAudioContext=new AC();
+    if(movementAudioContext.state==='suspended') movementAudioContext.resume().catch(()=>{});
+    // Prime iOS audio within a direct touch/click handler.
+    const o=movementAudioContext.createOscillator(),g=movementAudioContext.createGain();
+    g.gain.value=0;o.connect(g);g.connect(movementAudioContext.destination);
+    o.start();o.stop(movementAudioContext.currentTime+.01);
+  } catch(e){console.warn('LODU audio unlock:',e)}
+}
+document.addEventListener('pointerdown',unlockLoduAudio,{passive:true});
+document.addEventListener('touchstart',unlockLoduAudio,{passive:true});
+
+function playMovementSfx() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!movementAudioContext) movementAudioContext = new AC();
+    if (movementAudioContext.state === 'suspended') {
+      movementAudioContext.resume().catch(() => {});
+      // Continue scheduling the tap; resume() resolves asynchronously.
+    }
+    const t = movementAudioContext.currentTime;
+    const osc = movementAudioContext.createOscillator();
+    const gain = movementAudioContext.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(420, t);
+    osc.frequency.exponentialRampToValueAtTime(235, t + .065);
+    gain.gain.setValueAtTime(.0001, t);
+    gain.gain.exponentialRampToValueAtTime(.065, t + .008);
+    gain.gain.exponentialRampToValueAtTime(.0001, t + .085);
+    osc.connect(gain); gain.connect(movementAudioContext.destination);
+    osc.start(t); osc.stop(t + .09);
+  } catch (_) { /* Sound must never prevent a move. */ }
+}
+
+const HOP_MS = 170;
+
+// Animate one piece hopping through an explicit list of {x,y} waypoints.
+async function animateHops(pieceId, waypoints) {
+  for (const wp of waypoints) {
+    movePieceElTo(pieceId, wp.x, wp.y);
+    playMovementSfx();
+    const movingPiece = match.pieces.find(p => p.id === pieceId);
+    emitBattleWake(wp.x, wp.y, !!movingPiece && movingPiece.type === 'MISSILE');
+    await sleep(HOP_MS);
+  }
+}
+
+// Build the intermediate-node waypoint list for a normal MOVE action,
+// stepping through the exact same r-space the rules engine already used —
+// no separate movement system, just a visual replay of it.
+function buildMoveWaypoints(owner, type, beforeR, steps, pieceId) {
+  const waypoints = [];
+  for (let i = 1; i <= steps; i++) {
+    const r = beforeR + i;
+    if (type === 'MISSILE') {
+      waypoints.push(Layout.perimeterXY(Board.perimeterNodeFromR(owner, r)));
+    } else {
+      const d = Board.describeR(owner, r);
+      if (d.state === 'PERIMETER') waypoints.push(Layout.perimeterXY(d.node));
+      else if (d.state === 'HOMELANE') waypoints.push(Layout.homeLaneXY(owner, d.homeIndex));
+      else waypoints.push(resolveHomeXY(owner, pieceId)); // final step reaching HOME
+    }
+  }
+  return waypoints;
+}
+
+function flashDetonation(node) {
+  const p = Layout.perimeterXY(node);
+  emitBattleImpact(p.x, p.y);
+  const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  ring.setAttribute('cx', p.x); ring.setAttribute('cy', p.y); ring.setAttribute('r', 6);
+  ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', '#ff6b5b'); ring.setAttribute('stroke-width', '4');
+  ring.style.opacity = '0.9';
+  ring.style.transition = 'r 0.5s ease-out, opacity 0.5s ease-out';
+  document.getElementById('boardSvg').appendChild(ring);
+  requestAnimationFrame(() => { ring.setAttribute('r', Layout.CELL * 0.9); ring.style.opacity = '0'; });
+  setTimeout(() => ring.remove(), 550);
+}
+
+// Runs the full visual sequence for one applyMove() call: the chosen piece
+// travels its real path, then anything the rules engine sent back to Base
+// (captured, mutually destroyed, etc.) visibly returns to its own dock.
+// `chosen` is the exact legal-move object the player picked; `before` is
+// a pre-call snapshot (see snapshotAll()) — animation reads only these,
+// never re-derives legality or outcome itself.
+async function animateApplyMove(player, chosen, before) {
+  const piece = Rules.pieceById(match, chosen.pieceId); // already-mutated (authoritative)
+  const owner = piece.owner, type = piece.type;
+
+  if (chosen.action === 'DEPLOY') {
+    const dest = Layout.perimeterXY(Board.DEPLOY_NODE[owner]);
+    await animateHops(chosen.pieceId, [dest]);
+  } else {
+    const beforeR = before[chosen.pieceId].r;
+    const steps = chosen.newR - beforeR; // always the exact roll just used
+    const waypoints = buildMoveWaypoints(owner, type, beforeR, steps, chosen.pieceId);
+    await animateHops(chosen.pieceId, waypoints);
+  }
+
+  // If the mover itself ended up back in Base/Destroyed (mutual loss,
+  // mixed landing, captured-on-landing safe-square exception, etc.),
+  // bounce it onward to its own dock from wherever it landed.
+  const moverNowDocked = piece.state === 'BASE' || piece.state === 'DESTROYED';
+  const bounces = [];
+  if (moverNowDocked) bounces.push({ id: chosen.pieceId, ownerT: owner, type });
+
+  // Every OTHER piece whose state changed to BASE/DESTROYED this turn.
+  for (const p of match.pieces) {
+    if (p.id === chosen.pieceId) continue;
+    const b = before[p.id];
+    const becameDocked = (p.state === 'BASE' || p.state === 'DESTROYED') && (b.state !== 'BASE' && b.state !== 'DESTROYED');
+    if (becameDocked) bounces.push({ id: p.id, ownerT: p.owner, type: p.type });
+  }
+
+  if (bounces.length) {
+    const landing = chosen.action === 'DEPLOY' ? Layout.perimeterXY(Board.DEPLOY_NODE[owner]) : (type === 'MISSILE' ? Layout.perimeterXY(Board.perimeterNodeFromR(owner, chosen.newR)) : (chosen.newR < Board.HOME_LANE_START_R ? Layout.perimeterXY(Board.perimeterNodeFromR(owner, chosen.newR)) : null));
+    if (landing && Number.isFinite(landing.x) && Number.isFinite(landing.y)) emitBattleImpact(landing.x, landing.y);
+    await Promise.all(bounces.map((b) => {
+      const dest = dockXYFor(b.ownerT, b.type, b.id);
+      const fadeOut = match.pieces.find(p => p.id === b.id).state === 'DESTROYED';
+      return animateHops(b.id, [dest]).then(() => {
+        if (fadeOut) { const el = document.querySelector(`.piece[data-piece-id="${b.id}"]`); if (el) el.style.opacity = '0.35'; }
+      });
+    }));
+  }
+}
+
+// Same idea for Kamikaze: a detonation flash at each footprint node, then
+// every destroyed piece (including the activating Missile) bounces to its
+// own dock in parallel. The footprint/outcomes come straight from the
+// event `Rules.useKamikaze` already returned — nothing recomputed here.
+async function animateKamikaze(event, before) {
+  for (const n of event.footprintNodes) flashDetonation(n);
+  await sleep(320);
+
+  const bounces = [];
+  for (const shipId of event.destroyedShipIds) {
+    const p = Rules.pieceById(match, shipId);
+    bounces.push({ id: shipId, ownerT: p.owner, type: 'SHIP' });
+  }
+  for (const mo of event.missileOutcomes) {
+    const p = Rules.pieceById(match, mo.pieceId);
+    bounces.push({ id: mo.pieceId, ownerT: p.owner, type: 'MISSILE' });
+  }
+  await Promise.all(bounces.map((b) => {
+    const dest = dockXYFor(b.ownerT, b.type, b.id);
+    const fadeOut = match.pieces.find(p => p.id === b.id).state === 'DESTROYED';
+    return animateHops(b.id, [dest]).then(() => {
+      if (fadeOut) { const el = document.querySelector(`.piece[data-piece-id="${b.id}"]`); if (el) el.style.opacity = '0.35'; }
+    });
+  }));
+}
+
+
+const PIP_LAYOUTS = {
+  1: [[50,50]], 2: [[28,28],[72,72]], 3: [[28,28],[50,50],[72,72]],
+  4: [[28,28],[72,28],[28,72],[72,72]], 5: [[28,28],[72,28],[50,50],[28,72],[72,72]],
+  6: [[28,24],[72,24],[28,50],[72,50],[28,76],[72,76]],
+};
+// Front-facing ivory die: ONE readable face only, always showing the actual roll.
+// Bevel, gradients, highlights and inset pips add depth without showing other numbers.
+function renderDie(face) {
+  const svg = document.getElementById('dieSvg');
+  const pips = (PIP_LAYOUTS[face] || []).map(([x,y]) =>
+    `<circle cx="${x}" cy="${y}" r="9.3" fill="#252b33" stroke="#9a9ea7" stroke-width="2"/>` +
+    `<ellipse cx="${x-1.8}" cy="${y-2}" rx="4" ry="3.1" fill="#727883" opacity=".46"/>`
+  ).join('');
+  svg.innerHTML = `<defs>
+    <linearGradient id="frontIvory" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".48" stop-color="#f6f6f8"/><stop offset="1" stop-color="#c9cdd6"/>
+    </linearGradient>
+    <linearGradient id="bevelIvory" x1="0" y1="0" x2=".9" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".62" stop-color="#e8e9ed"/><stop offset="1" stop-color="#9da5b4"/>
+    </linearGradient>
+    <filter id="softDieShadow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <ellipse cx="74" cy="132" rx="45" ry="7" fill="#000" opacity=".32" filter="url(#softDieShadow)"/>
+  <rect x="16" y="13" width="116" height="116" rx="25" fill="url(#bevelIvory)" stroke="#abb0bb" stroke-width="1.4"/>
+  <rect x="21" y="18" width="105" height="105" rx="21" fill="url(#frontIvory)" stroke="#ffffff" stroke-width="1.4"/>
+  <path d="M37 23 Q23 23 23 39 L23 94" fill="none" stroke="#ffffff" stroke-width="3.4" opacity=".83" stroke-linecap="round"/>
+  <path d="M123 50 L123 101 Q123 121 101 121 L45 121" fill="none" stroke="#8e96a4" stroke-width="3" opacity=".36" stroke-linecap="round"/>
+  <g transform="translate(24 22) scale(.99)">${pips}</g>
+  `;
+}
+
+// Visual-only tumble: cycles through a few RANDOM faces purely for motion,
+// then renders the exact, already-determined `finalFace` on the last frame.
+// None of the intermediate faces are ever read as a game result — they are
+// discarded the instant they're drawn. Resolves once the die has settled.
+function animateDieTumble(finalFace) {
+  return new Promise((resolve) => {
+    const svg = document.getElementById('dieSvg');
+    const frames = 7;
+    let i = 0;
+    const tumbleStep = () => {
+      i += 1;
+      const cosmetic = 1 + Math.floor(Math.random() * 6); // display-only, not a game result
+      svg.style.transform = `scale(${1 - Math.min(i,4)*0.035})`; // stays face-on throughout
+      renderDie(i < frames ? cosmetic : finalFace);
+      if (i < frames) {
+        setTimeout(tumbleStep, 55 + i * 12); // gradually slows, like a real die losing energy
+      } else {
+        svg.style.transform = 'scale(1)';
+        svg.classList.remove('settle'); void svg.offsetWidth; svg.classList.add('settle');
+        setTimeout(resolve, 260); // let the settle bounce finish before highlighting moves
+      }
+    };
+    tumbleStep();
+  });
+}
+
+function flashExtraTurn() {
+  const wrap = document.querySelector('.die-wrap');
+  wrap.classList.remove('extra-turn-flash'); void wrap.offsetWidth; wrap.classList.add('extra-turn-flash');
+}
+
+/* ---------- Command Panel (reusable — driven entirely by `player` param) ---------- */
+let lastDisplayedTurn = null;
+function renderCommandPanel() {
+  const player = Rules.currentPlayer(match);
+  const f = FACTION[player];
+  const profile = document.querySelector('.command-panel .cp-player');
+  profile.style.setProperty('--turn-colour', f.primary);
+  profile.style.setProperty('--turn-tint', f.primary);
+  profile.style.setProperty('--turn-deep', f.dark);
+  if (player !== lastDisplayedTurn) {
+    profile.classList.remove('turn-pulse');
+    void profile.offsetWidth; // restart animation even if the same profile node is reused
+    profile.classList.add('turn-pulse');
+    lastDisplayedTurn = player;
+  }
+  const portraitName = { NORTH:'boris', EAST:'eagle', SOUTH:'long', WEST:'zari' }[player];
+  document.getElementById('cpPortrait').innerHTML = `<img src="assets/${portraitName}_portrait.png" alt="${f.commander}" draggable="false">`;
+  document.getElementById('cpCommander').textContent = displayCommander(player);
+  document.getElementById('cpFaction').textContent = f.name;
+  document.getElementById('cpYourTurn').textContent = match.winner ? 'MATCH OVER' : (onlineMode && onlineMine!==player ? 'OPPONENT TURN' : 'YOUR TURN');
+
+  document.getElementById('turnDot').style.background = f.primary;
+  document.getElementById('turnDot').style.boxShadow = `0 0 6px ${f.primary}`;
+  document.getElementById('turnText').textContent = match.winner ? `${displayCommander(player).toUpperCase()} WINS` : `${displayCommander(player).toUpperCase()}'S TURN`;
+
+  // Generalized for 2/3/4 players: render one compact chip per OTHER
+  // participating player (Rules.currentPlayer / match.playerOrder remain
+  // the sole source of truth for who's playing and whose turn it is).
+  const others = players.filter(p => p !== player);
+  document.getElementById('oppChip').innerHTML = others.map(o => {
+    const of = FACTION[o];
+    const oShips = match.pieces.filter(p => p.owner === o && p.type === 'SHIP');
+    const oHome = oShips.filter(s => s.state === 'HOME').length;
+    const oMissile = match.pieces.find(p => p.owner === o && p.type === 'MISSILE');
+    const missileTxt = oMissile.state === 'DESTROYED' ? 'Lost' : oMissile.state === 'BASE' ? 'Base' : 'Active';
+    return `<span class="opp-mini"><span class="av" style="background:${of.primary}">${of.crest}</span> ${of.name} &nbsp;🚢${oHome}/2&nbsp; 🚀${missileTxt}</span>`;
+  }).join('');
+
+  renderFleetPicker(player);
+
+  // Kamikaze availability
+  const canKam = !match.winner && !isAnimating && Rules.canUseKamikaze(match, player) && !pendingRoll && (!onlineMode || (onlineMine===player && onlineState?.roll===null));
+  const kamBtn = document.getElementById('kamikazeBtn');
+  kamBtn.disabled = !canKam;
+  const badge = document.getElementById('kamBadge');
+  badge.textContent = match.players[player].kamikazeUsed ? 'SPENT' : '1 LEFT';
+  badge.className = 'kam-badge' + (match.players[player].kamikazeUsed ? ' spent' : '');
+
+  // Battle Report — most recent 5 translated events
+  const entries = [];
+  for (let i = match.eventLog.length - 1; i >= 0 && entries.length < 5; i--) {
+    const e = match.eventLog[i];
+    const fmt = EVENT_TEXT[e.type];
+    if (!fmt) continue;
+    const r = fmt(e);
+    if (!r) continue;
+    entries.push(r);
+  }
+  const brEl = document.getElementById('battleReport');
+  brEl.innerHTML = entries.length ? entries.map(r => `<div class="br-entry${r.hi?' hi':''}${r.capture?' capture':''}">${r.text}${r.sub ? `<span class="t">${r.sub}</span>` : ''}</div>`).join('') : '<div class="br-empty">No moves yet.</div>';
+
+  // Status
+  const ships = match.pieces.filter(p => p.owner === player && p.type === 'SHIP');
+  const homeCount = ships.filter(s => s.state === 'HOME').length;
+  const missile = match.pieces.find(p => p.owner === player && p.type === 'MISSILE');
+  const missilePill = missile.state === 'DESTROYED' ? '<span class="ps-pill spent">LOST</span>' : missile.state === 'BASE' ? '<span class="ps-pill used">IN BASE</span>' : '<span class="ps-pill ready">ACTIVE</span>';
+  document.getElementById('statusRows').innerHTML = `
+    <div class="ps-row">Ships home <b>${homeCount} / 2</b></div>
+    <div class="ps-row">Missile ${missilePill}</div>
+    <div class="ps-row">Rearm ${match.players[player].rearmUsed ? '<span class="ps-pill used">USED</span>' : '<span class="ps-pill ready">AVAILABLE</span>'}</div>
+    <div class="ps-row">Kamikaze ${match.players[player].kamikazeUsed ? '<span class="ps-pill spent">SPENT</span>' : '<span class="ps-pill ready">AVAILABLE</span>'}</div>
+  `;
+}
+
+// Fleet cards mirror the same legalMoves array used by board-piece clicks.
+// They never decide legality or mutate the engine themselves.
+function renderFleetPicker(player) {
+  const pieces = match.pieces.filter(p => p.owner === player);
+  const legalIds = new Set(legalMoves.map(m => m.pieceId));
+  const canPick = !isAnimating && !match.winner;
+  document.getElementById('fleetHint').textContent = legalIds.size ? 'Choose a highlighted piece' : 'Roll to activate';
+  const picker = document.getElementById('fleetPicker');
+  picker.innerHTML = '';
+  pieces.forEach((piece, i) => {
+    const f = FACTION[player];
+    const legal = canPick && legalIds.has(piece.id);
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'fleet-card' + (legal ? ' fleet-card-legal' : '');
+    card.disabled = !legal;
+    const stateLabel = piece.state === 'PERIMETER' ? 'AT SEA' : piece.state === 'HOMELANE' ? 'HOME LANE' : piece.state;
+    const icon = piece.type === 'MISSILE' ? '🚀' : '🚢';
+    card.innerHTML = `<span class="fleet-card-icon" style="border-color:${f.primary}">${icon}</span><span class="fleet-card-copy"><strong>${piece.type === 'MISSILE' ? 'MISSILE' : `SHIP ${pieces.filter(p=>p.type==='SHIP').indexOf(piece)+1}`}</strong><small>${stateLabel}</small></span><span class="fleet-card-action">${legal ? 'SELECT ↗' : '—'}</span>`;
+    if (legal && (!onlineMode || onlineMine===Rules.currentPlayer(match))) card.addEventListener('click', () => choosePiece(piece.id));
+    picker.appendChild(card);
+  });
+}
+
+function refresh() { renderPieces(); renderCommandPanel(); }
+
+function startTurnUI() {
+  legalMoves = []; pendingRoll = null;
+  document.getElementById('rollBtn').disabled = onlineMode && (onlineMine!==Rules.currentPlayer(match) || onlineState?.roll!==null);
+  document.getElementById('rollBtn').textContent = 'Roll Dice';
+  document.getElementById('dieCaption').innerHTML = 'Ready to roll';
+  refresh();
+}
+
+
+/* Cinematics are keyed by the DESTROYED SHIP'S owner, not the attacker.
+   A multi-ship hit plays one video per distinct affected faction. */
+const SHIP_LOSS_FILMS = Object.freeze({
+  NORTH: 'cinematics/Boris.mp4',
+  EAST: 'cinematics/Sterling.mp4',
+  SOUTH: 'cinematics/Long.mp4',
+  WEST: 'cinematics/Zari.mp4',
+});
+/* Homecoming is keyed to the owner of the ship that actually reached HOME.
+   Presentation-only: does not alter rules, rolls, movement, or victory. */
+const HOMECOMING_FILMS = Object.freeze({
+  NORTH: 'homecoming/Boris.mp4',
+  EAST: 'homecoming/Sterling.mp4',
+  SOUTH: 'homecoming/Long.mp4',
+  WEST: 'homecoming/Zari.mp4',
+});
+function newlyHomeOwners(before) {
+  return [...new Set(match.pieces.filter(p => p.type === 'SHIP' &&
+    before[p.id] && before[p.id].state !== 'HOME' && p.state === 'HOME')
+    .map(p => p.owner))];
+}
+async function playHomecomingCinematics(owners) {
+  await playShipLossCinematics(owners, HOMECOMING_FILMS, false);
+}
+function shipLossOwners(before) {
+  return [...new Set(match.pieces.filter(p => p.type === 'SHIP' &&
+    before[p.id] && before[p.id].state !== 'BASE' &&
+    before[p.id].state !== 'DESTROYED' && p.state === 'BASE')
+    .map(p => p.owner))];
+}
+// Gentle half-second harp-like arpeggio, synthesized locally (no audio asset).
+// Sound is presentation-only and cannot affect the rules engine.
+async function playShipLossCue() {
+  const duration = 510;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!movementAudioContext) movementAudioContext = new AC();
+    const ctx = movementAudioContext;
+    if (ctx.state === 'suspended') await ctx.resume();
+    if (ctx.state !== 'running') return;
+    const t = ctx.currentTime + 0.015;
+    [659.25, 830.61, 987.77].forEach((hz, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const at = t + i * 0.105;
+      osc.type = 'sine'; osc.frequency.setValueAtTime(hz, at);
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.095, at + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.30);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(at); osc.stop(at + 0.31);
+    });
+  } catch (_) { /* Browsers may restrict sound; cinematic still plays. */ }
+  await new Promise(resolve => setTimeout(resolve, duration));
+}
+
+async function playShipLossCinematics(owners, filmMap = SHIP_LOSS_FILMS, useHarp = true) {
+  if (owners.length && useHarp) await playShipLossCue();
+  const unique = [...new Set(owners)].filter(owner => filmMap[owner]);
+  if (!unique.length) return;
+  const overlay = document.getElementById('shipCinematicOverlay');
+  const grid = document.getElementById('shipCinematicGrid');
+  const skip = document.getElementById('shipCinematicSkip');
+  grid.replaceChildren();
+  grid.classList.toggle('single',unique.length===1);
+  grid.classList.toggle('multi-stack',unique.length===2 || unique.length===3);
+  grid.classList.toggle('multi-four',unique.length===4);
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden','false');
+  const videos=[];
+  const onSkip=()=>videos.forEach(v=>{v.pause();v.dispatchEvent(new Event('lodu-skip'));});
+  skip.addEventListener('click',onSkip);
+  try {
+    const completions=unique.map((owner,index)=>{
+      const wrap=document.createElement('div');wrap.className='ship-cinematic';
+      const video=document.createElement('video');
+      video.src=filmMap[owner];video.preload='auto';video.playsInline=true;
+      video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
+      video.setAttribute('aria-label',FACTION[owner].commander+(useHarp?' ship destroyed':' ship arrived home'));
+      video.controls=false;
+      if(unique.length>1 && index>0) video.muted=true;
+      wrap.append(video);grid.append(wrap);videos.push(video);
+      return new Promise(resolve=>{
+        let done=false;
+        const finish=()=>{if(done)return;done=true;clearTimeout(watchdog);resolve();};
+        const watchdog=setTimeout(finish,25000);
+        video.addEventListener('ended',finish,{once:true});
+        video.addEventListener('error',finish,{once:true});
+        video.addEventListener('lodu-skip',finish,{once:true});
+      });
+    });
+    videos.forEach(v=>{
+      const playback=v.play();
+      if(playback&&typeof playback.catch==='function')playback.catch(()=>v.dispatchEvent(new Event('lodu-skip')));
+    });
+    await Promise.all(completions);
+  } finally {
+    videos.forEach(v=>{v.pause();v.removeAttribute('src');v.load();});
+    skip.removeEventListener('click',onSkip);
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden','true');
+    grid.replaceChildren();
+    grid.classList.remove('multi-stack','multi-four');
+  }
+}
+
+function choosePiece(pieceId) {
+  if (onlineMode) { if (!isAnimating && onlineMine===Rules.currentPlayer(match) && legalMoves.some(m=>m.pieceId===pieceId)) onlineSend('move',{pieceId}); return; }
+  if (isAnimating) return;
+  const move = legalMoves.find(mv => mv.pieceId === pieceId);
+  if (!move) return;
+  const player = Rules.currentPlayer(match);
+
+  isAnimating = true;
+  legalMoves = []; // clear immediately so no second click can race in
+  renderPieces();  // drop the .selectable/pulse state right away
+
+  const before = snapshotAll();               // 1. snapshot pre-call visual state
+  Rules.applyMove(match, player, move);        // 2. authoritative mutation (unchanged engine)
+  noteFirstDeployment(player, move, before);
+
+  animateApplyMove(player, move, before).then(async () => { // 3. pure visual replay
+    await playShipLossCinematics(shipLossOwners(before));
+    await playHomecomingCinematics(newlyHomeOwners(before));
+    isAnimating = false;
+    refresh();                                 // 4. guarantee DOM == match exactly
+
+    if ((match.finishOrder || []).includes(player)) {
+      if (match.winner) { showVictory(match.winner); return; }
+      await showPlacement(player, match.finishOrder.indexOf(player) + 1);
+      Rules.advanceTurn(match);
+      startTurnUI();
+      return;
+    }
+
+    if (match.winner) { showVictory(match.winner); return; }
+
+    if (pendingRoll === 6) {
+      document.getElementById('dieCaption').innerHTML = `Rolled <b>6</b> — extra turn!`;
+      document.getElementById('rollBtn').disabled = false;
+      document.getElementById('rollBtn').textContent = 'Roll Again';
+      flashExtraTurn();
+      pendingRoll = null;
+    } else {
+      Rules.advanceTurn(match);
+      startTurnUI();
+    }
+  });
+}
+
+function onRoll() {
+  if (onlineMode) { if (!isAnimating && onlineMine===Rules.currentPlayer(match) && onlineState?.roll===null) onlineSend('roll'); return; }
+  if (isAnimating) return;
+  const player = Rules.currentPlayer(match);
+  const roll = balancedOpeningRoll(player); // Authoritative result, with limited first-deployment balancing.
+  noteOpeningRoll(player, roll);
+  lastRolledFace = roll;             // 2. Store it.
+  isAnimating = true;
+  document.getElementById('rollBtn').disabled = true;
+  document.getElementById('kamikazeBtn').disabled = true;
+  document.getElementById('dieCaption').textContent = 'Rolling…';
+
+  animateDieTumble(roll).then(() => { // 3/4/5. Tumble, then settle on the stored, already-final result.
+    isAnimating = false;
+    const reg = Rules.registerRoll(match, roll);
+    if (reg.forfeited) {
+      document.getElementById('dieCaption').textContent = 'Three sixes — turn forfeited!';
+      refresh();
+      Rules.advanceTurn(match);
+      setTimeout(startTurnUI, 750);
+      return;
+    }
+
+    // 6. Only AFTER the die has settled do legal pieces become highlighted.
+    legalMoves = Rules.getLegalMoves(match, player, roll);
+    if (legalMoves.length === 0) {
+      document.getElementById('dieCaption').innerHTML = `Rolled <b>${roll}</b> — no legal move`;
+      refresh();
+      setTimeout(() => { Rules.advanceTurn(match); startTurnUI(); }, 700);
+      return;
+    }
+    const hint = roll === 1 ? 'deploy or move a legal piece' : roll === 6 ? 'deploy or move — extra turn after!' : 'move a legal piece';
+    document.getElementById('dieCaption').innerHTML = `Rolled <b>${roll}</b> — ${hint}`;
+    pendingRoll = roll;
+    refresh();
+    showFirstMoveHint();
+  });
+}
+
+/* ---------- Kamikaze (existing rules-engine logic only — no UI-side reimplementation) ---------- */
+function onKamikazeClick() {
+  if (onlineMode && (onlineMine!==Rules.currentPlayer(match) || onlineState?.roll!==null)) return;
+  if (isAnimating) return;
+  const player = Rules.currentPlayer(match);
+  const preview = Rules.getKamikazePreview(match, player); // rules-layer source of truth — no UI-side math
+  if (!preview) return; // Kamikaze not currently available; button should already be disabled
+  const footprint = preview.footprintNodes.slice().sort((a, b) => a - b);
+  document.getElementById('kamNode').textContent = preview.centerNode;
+  document.getElementById('kamFootprint').innerHTML = footprint.map(n => `<span>${n}</span>`).join('');
+  document.getElementById('kamikazeConfirm').style.display = 'flex';
+}
+document.getElementById('kamCancel').addEventListener('click', () => { document.getElementById('kamikazeConfirm').style.display = 'none'; });
+document.getElementById('kamConfirm').addEventListener('click', () => {
+  if (isAnimating) return;
+  document.getElementById('kamikazeConfirm').style.display = 'none';
+  const player = Rules.currentPlayer(match);
+
+  isAnimating = true;
+  legalMoves = [];
+  renderPieces();
+  document.getElementById('rollBtn').disabled = true;
+  document.getElementById('kamikazeBtn').disabled = true;
+
+  const before = snapshotAll();                    // 1. snapshot pre-call visual state
+  if (onlineMode) { isAnimating=false; onlineSend('kamikaze'); return; }
+  const [event] = Rules.useKamikaze(match, player); // 2. authoritative mutation (unchanged engine)
+
+  animateKamikaze(event, before).then(async () => {       // 3. pure visual replay of the real event
+    await playShipLossCinematics(shipLossOwners(before));
+    isAnimating = false;
+    refresh();                                      // 4. guarantee DOM == match exactly
+    if (match.winner) { showVictory(match.winner); return; }
+    Rules.advanceTurn(match);
+    startTurnUI();
+  });
+});
+
+function showPlacement(player, place) {
+  const toast = document.getElementById('placementToast');
+  const suffix = ['ST','ND','RD','TH'][place - 1] || 'TH';
+  toast.textContent = `${place}${suffix} PLACE SECURED! — ${displayCommander(player)}`;
+  toast.style.display = 'block';
+  return new Promise(resolve => setTimeout(() => {toast.style.display = 'none';resolve();}, 2300));
+}
+const CEREMONY_NAMES = {NORTH:'Boris',EAST:'Sterling',SOUTH:'Long',WEST:'Zari'};
+let ceremonyShown = false;
+function buildFinalResults() {
+  // The game engine is the ONLY source of standings. No example/demo rankings.
+  if (!match || !match.winner || !Array.isArray(match.finishOrder)) return null;
+  const players = match.playerOrder.slice();
+  const order = match.finishOrder.slice();
+  if (players.length < 2 || players.length > 4 || order.length !== players.length ||
+      new Set(order).size !== order.length || order.some(p => !players.includes(p)) ||
+      order[0] !== match.winner) return null;
+  return order.map((p, index) => ({
+    rank: index + 1,
+    commander: CEREMONY_NAMES[p],
+    playerName: customCommanderNames[p] || FACTION[p].name,
+    faction: FACTION[p].name,
+    key: p
+  }));
+}
+function showVictory(winner) {
+  const standings = buildFinalResults();
+  if (!standings) { console.error('LODU: refused to display unverified final results', match); return; }
+  if (ceremonyShown) return;
+  ceremonyShown = true;
+  const overlay = document.getElementById('grandCeremony');
+  const frame = document.getElementById('ceremonyFrame');
+  const payload = {type:'lodu-final-results', standings};
+  overlay.style.display = 'flex';
+  const send = () => frame.contentWindow.postMessage(payload, '*');
+  // Send on load AND on the child's explicit ready signal; this avoids iframe races.
+  frame.addEventListener('load', send, {once:true});
+  send();
+}
+window.addEventListener('message', e => {
+  const frame = document.getElementById('ceremonyFrame');
+  if (e.source !== frame.contentWindow) return;
+  if (e.data?.type === 'lodu-results-ready' && ceremonyShown) {
+    const standings = buildFinalResults();
+    if (standings) frame.contentWindow.postMessage({type:'lodu-final-results',standings}, '*');
+  }
+  if (e.data?.type === 'lodu-play-again') location.reload();
+});
+
+function showFirstMoveHint(){
+  try { if (localStorage.getItem('lodu_move_hint_dismissed_v1') === 'yes') return; } catch(e) {}
+  document.getElementById('loduMoveHint').hidden=false;
+}
+document.getElementById('loduMoveHintClose').addEventListener('click',()=>{
+  document.getElementById('loduMoveHint').hidden=true;
+  try { localStorage.setItem('lodu_move_hint_dismissed_v1','yes'); } catch(e) {}
+});
+document.getElementById('loduDiceHintClose').addEventListener('click',()=>{
+  document.getElementById('loduDiceHint').hidden=true;
+  try{localStorage.setItem('lodu_dice_hint_dismissed_v1','yes')}catch(e){}
+});
+document.getElementById('kamInfoBtn').addEventListener('click',()=>{document.getElementById('loduKamHelp').hidden=false});
+document.getElementById('loduKamHelpClose').addEventListener('click',()=>{document.getElementById('loduKamHelp').hidden=true});
+document.getElementById('rollBtn').addEventListener('click', onRoll);
+document.getElementById('kamikazeBtn').addEventListener('click', onKamikazeClick);
+// Phase 2I Stage 3: canonical geometry audit. Pure read-only checks.
+function auditBoardCoordinates() {
+  const perimeter = Array.from({length: Board.PERIMETER_SIZE}, (_,i) => Layout.perimeterXY(i+1));
+  const unique = new Set(perimeter.map(p => `${p.x},${p.y}`));
+  const home = Board.PLAYERS.flatMap(owner => Array.from({length:7}, (_,i) => Layout.homeLaneXY(owner,i+2)));
+  const all = [...perimeter,...home];
+  const boardBounds = all.every(p => Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= Layout.ORIGIN_X && p.x <= Layout.ORIGIN_X+Layout.BOARD_SIDE && p.y >= Layout.ORIGIN_Y && p.y <= Layout.ORIGIN_Y+Layout.BOARD_SIDE);
+  const entries = Board.PLAYERS.every(owner => Board.ENTRY_NODE[owner] === (Board.DEPLOY_NODE[owner] === 1 ? Board.PERIMETER_SIZE : Board.DEPLOY_NODE[owner]-1));
+  const result = {perimeterNodes: perimeter.length, uniquePerimeterNodes:unique.size, homeLaneNodes:home.length, safeSquares:Board.SAFE_SQUARES.size, entryMatchesDeploy:entries, allWithinBoard:boardBounds, valid:unique.size===68 && home.length===28 && Board.SAFE_SQUARES.size===12 && entries && boardBounds};
+  console.info('LODU canonical board coordinate audit', result);
+  return result;
+}
+window.LODU_auditBoardCoordinates = auditBoardCoordinates;
+
+function positionMobileDie() {
+  const stage = document.getElementById('stage');
+  const wrap = document.querySelector('.die-wrap');
+  const anchor = document.getElementById('dieOriginalPosition');
+  if (!stage || !wrap || !anchor) return;
+  const mobile = window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+  if (mobile) {
+    if (wrap.parentNode !== stage) stage.appendChild(wrap);
+    wrap.classList.add('mobile-board-die');
+    wrap.setAttribute('role','button'); wrap.setAttribute('tabindex','0');
+    wrap.setAttribute('aria-label','Roll dice');
+  } else {
+    if (wrap.parentNode !== anchor.parentNode) anchor.parentNode.insertBefore(wrap,anchor.nextSibling);
+    wrap.classList.remove('mobile-board-die');
+    wrap.removeAttribute('role'); wrap.removeAttribute('tabindex');
+  }
+}
+(function () {
+  const die = document.querySelector('.die-wrap');
+  const roll = document.getElementById('rollBtn');
+  if (!die || !roll) return;
+  die.addEventListener('click', (event) => {
+    if (!die.classList.contains('mobile-board-die') || event.target === roll) return;
+    if (!roll.disabled) roll.click();
+  });
+  die.addEventListener('keydown', (event) => {
+    if (die.classList.contains('mobile-board-die') && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault(); if (!roll.disabled) roll.click();
+    }
+  });
+})();
+function fitGameplayStage() {
+  positionMobileDie();
+  const stage = document.getElementById('stage');
+  if (stage.style.display === 'none' || !stage.style.display) return;
+  const portrait = window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
+  if (portrait) {
+    const virtualWidth = 1040, virtualHeight = 2360;
+    const scale = window.innerWidth / virtualWidth;
+    stage.style.position = 'absolute';
+    stage.style.left = '0px';
+    stage.style.top = '0px';
+    stage.style.margin = '0';
+    stage.style.transformOrigin = 'top left';
+    stage.style.transform = `scale(${scale})`;
+    document.body.style.minHeight = (virtualHeight * scale) + 'px';
+    document.body.style.overflowY = 'auto';
+  } else {
+    const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    stage.style.position = 'fixed';
+    stage.style.margin = '0';
+    stage.style.left = ((window.innerWidth - 1920 * scale) / 2) + 'px';
+    stage.style.top = ((window.innerHeight - 1080 * scale) / 2) + 'px';
+    stage.style.transformOrigin = 'top left';
+    stage.style.transform = `scale(${scale})`;
+    document.body.style.minHeight = '';
+  }
+}
+window.addEventListener('resize', fitGameplayStage);
+
+// Return to the already-approved main menu. A live match is not discarded
+// without confirmation; starting a new match uses the existing setup flow.
+document.getElementById('gameMenuBtn').addEventListener('click', () => {
+  if (isAnimating || !match) return;
+  if (!window.confirm('Leave this match and return to the main menu? Your current match will not be saved.')) return;
+  match = null;
+  legalMoves = [];
+  pendingRoll = null;
+  document.getElementById('stage').style.display = 'none';
+  document.getElementById('mainMenu').style.display = 'block';
+});
+
+document.getElementById('debugToggle').addEventListener('click', function () {
+  document.body.classList.toggle('debug-on');
+  this.classList.toggle('on');
+});
+
+/* ---------- Setup screen: 2/3/4-player faction selection ----------
+   This is UI-only bookkeeping (which dropdown shows which faction name).
+   It never decides legality, turn order, or player count limits — those
+   remain Rules.createMatch()'s job alone (see the startBtn handler below,
+   which just builds a plain array and hands it off). */
+function renderFactionSelects(count) {
+  const container = document.getElementById('factionSelects');
+  container.innerHTML = '';
+  // Default assignment: first N canonical factions in NORTH/EAST/SOUTH/WEST
+  // order — distinct by construction, so no duplicate is possible before
+  // the player touches anything.
+  const defaults = Board.PLAYERS.slice(0, count);
+  for (let i = 1; i <= count; i++) {
+    const label = document.createElement('label');
+    label.textContent = `Player ${i}`;
+    label.setAttribute('for', `pf${i}`);
+    const select = document.createElement('select');
+    select.id = `pf${i}`;
+    // Populate WITH the default pre-selected in the same pass — setting
+    // .value on a still-empty <select> silently no-ops, so the default
+    // must be baked into the initial option markup, not assigned after.
+    select.innerHTML = Board.PLAYERS.map((p) => {
+      const label2 = `${FACTION[p].name} (${p.charAt(0) + p.slice(1).toLowerCase()}) — ${FACTION[p].commander}`;
+      return `<option value="${p}" ${p === defaults[i - 1] ? 'selected' : ''}>${label2}</option>`;
+    }).join('');
+    container.appendChild(label);
+    container.appendChild(select);
+    const nameLabel = document.createElement('label');
+    nameLabel.textContent = `Player ${i} — Your name (optional)`;
+    nameLabel.setAttribute('for', `pn${i}`);
+    const nameInput = document.createElement('input');
+    nameInput.id = `pn${i}`;
+    nameInput.type = 'text';
+    nameInput.maxLength = 32;
+    nameInput.autocomplete = 'off';
+    nameInput.placeholder = 'e.g. Arun Kumar';
+    nameInput.setAttribute('aria-label', `Player ${i} name (optional)`);
+    container.appendChild(nameLabel);
+    container.appendChild(nameInput);
+  }
+  refreshFactionOptionAvailability();
+}
+
+function refreshFactionOptionAvailability() {
+  const selects = Array.from(document.querySelectorAll('#factionSelects select'));
+  const chosen = selects.map((s) => s.value);
+  for (const s of selects) {
+    const currentVal = s.value;
+    s.innerHTML = Board.PLAYERS.map((p) => {
+      const label = `${FACTION[p].name} (${p.charAt(0) + p.slice(1).toLowerCase()}) — ${FACTION[p].commander}`;
+      const isTakenByAnother = chosen.includes(p) && p !== currentVal;
+      return `<option value="${p}" ${p === currentVal ? 'selected' : ''} ${isTakenByAnother ? 'disabled' : ''}>${label}</option>`;
+    }).join('');
+  }
+}
+
+document.getElementById('factionSelects').addEventListener('change', refreshFactionOptionAvailability);
+document.getElementById('playerCount').addEventListener('change', (e) => {
+  renderFactionSelects(Number(e.target.value));
+});
+renderFactionSelects(2); // initial setup screen state
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  const selects = Array.from(document.querySelectorAll('#factionSelects select'));
+  const chosen = selects.map(s => s.value);
+  const uniqueCount = new Set(chosen).size;
+  if (uniqueCount !== chosen.length) { alert('Each player must choose a different faction.'); return; }
+
+  // Player names are presentation-only; they do not alter the engine's faction IDs.
+  for (const key of Object.keys(customCommanderNames)) delete customCommanderNames[key];
+  selects.forEach((select, index) => {
+    const raw = document.getElementById(`pn${index + 1}`).value;
+    const cleaned = raw.trim().replace(/\s+/g, ' ').slice(0, 32);
+    if (cleaned) customCommanderNames[select.value] = cleaned;
+  });
+  players = chosen; // exactly what gets passed to the canonical engine — no UI-side player/turn system
+  lastDisplayedTurn = null; // animate the opening player on every new match
+  match = Rules.createMatch(players); // Rules.createMatch already validates 2-4 players; nothing duplicated here
+  resetFirstDeployAssist();
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('stage').style.display = 'block';
+  fitGameplayStage();
+  unlockLoduAudio();
+  try { if (localStorage.getItem('lodu_dice_hint_dismissed_v1') !== 'yes') document.getElementById('loduDiceHint').hidden=false; } catch(e) { document.getElementById('loduDiceHint').hidden=false; }
+
+  // inject gradient/pattern defs once, then the static board art
+  const defs = `<defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#efe3c4"/><stop offset="100%" stop-color="#d8c79c"/></linearGradient>
+    <radialGradient id="safeTile" cx="50%" cy="35%" r="75%"><stop offset="0%" stop-color="#fff3cf"/><stop offset="100%" stop-color="#e3c477"/></radialGradient>
+    <radialGradient id="goldGem" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#fff8df"/><stop offset="55%" stop-color="#e8c766"/><stop offset="100%" stop-color="#a9791f"/></radialGradient>
+    <radialGradient id="hubPlate" cx="50%" cy="40%" r="75%"><stop offset="0%" stop-color="#1a5478"/><stop offset="100%" stop-color="#0c3a54"/></radialGradient>
+    <pattern id="dockPlanks" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="none"/><line x1="0" y1="0" x2="0" y2="18" stroke="#000" stroke-width="1" opacity="0.15"/></pattern>
+    <linearGradient id="pathStone" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e9dcb8"/><stop offset="50%" stop-color="#d2bd8c"/><stop offset="100%" stop-color="#b89f6c"/></linearGradient>
+    <pattern id="pathWood" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="16" height="16" fill="none"/><line x1="0" y1="0" x2="0" y2="16" stroke="#5a4a30" stroke-width="0.8" opacity="0.35"/><line x1="8" y1="0" x2="8" y2="16" stroke="#5a4a30" stroke-width="0.5" opacity="0.2"/></pattern>
+    <radialGradient id="hubOuterGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a5478" stop-opacity="0.55"/><stop offset="100%" stop-color="#1a5478" stop-opacity="0"/></radialGradient>
+    <radialGradient id="hubCore" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#2a6f94"/><stop offset="100%" stop-color="#0c3a54"/></radialGradient>
+    <radialGradient id="dockWater" cx="50%" cy="70%" r="75%"><stop offset="0%" stop-color="#0c3a54"/><stop offset="100%" stop-color="#051d2e"/></radialGradient>
+    <radialGradient id="homeGlowNORTH" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#fff8df"/><stop offset="60%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#3a2f1f"/></radialGradient>
+    <radialGradient id="homeGlowEAST" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#fff8df"/><stop offset="60%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#3a2f1f"/></radialGradient>
+    <radialGradient id="homeGlowSOUTH" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#fff8df"/><stop offset="60%" stop-color="#86efac"/><stop offset="100%" stop-color="#3a2f1f"/></radialGradient>
+    <radialGradient id="homeGlowWEST" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#fff8df"/><stop offset="60%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#3a2f1f"/></radialGradient>
+  </defs>`;
+  document.getElementById('boardSvg').innerHTML = defs + buildBoardArt();
+
+  renderDie(null);
+  startTurnUI();
+});
+
+
+/* Online integration beta: server is sole rules authority; local engine only renders. */
+function onlineSend(type,more={}) { if(onlineSocket?.readyState===1) onlineSocket.send(JSON.stringify({type,...more})); }
+function onlineConnect(){
+ if(onlineSocket && (onlineSocket.readyState===1||onlineSocket.readyState===0))return;
+ onlineSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host);
+ onlineSocket.onopen=()=>{
+  document.getElementById('onlineStatus').textContent='Connected to battle server';
+  let old;try{old=JSON.parse(sessionStorage.getItem('lodu_session')||'null')}catch{}
+  if(old)onlineSend('reconnect',old);
+ };
+ onlineSocket.onclose=()=>{document.getElementById('onlineStatus').textContent='Disconnected — reconnecting…';setTimeout(onlineConnect,1600)};
+ onlineSocket.onmessage=e=>{
+  const m=JSON.parse(e.data);
+  onlineMessageQueue=onlineMessageQueue.then(async()=>{
+  if(m.type==='error'){document.getElementById('onlineError').textContent=m.message;return;}
+  if(m.type!=='state'||m.state.version<=onlineVersion)return;
+  onlineVersion=m.state.version;onlineYou=m.you;
+  try{sessionStorage.setItem('lodu_session',JSON.stringify({code:m.state.code,token:m.token}));}catch{}
+  const prev=onlineState;onlineState=m.state;
+  onlineMine=m.state.players.find(p=>p.id===onlineYou)?.faction||null;
+  document.getElementById('onlineError').textContent='';
+  document.getElementById('onlineEntry').style.display='none';
+  document.getElementById('onlineRoom').style.display=m.state.phase==='lobby'?'block':'none';
+  document.getElementById('onlineRoomCode').textContent=m.state.code;
+  document.getElementById('onlinePeople').textContent=m.state.players.map(p=>`${p.name}: ${p.faction||'selecting'} ${p.connected?'●':'○'}`).join(' · ');
+  const factionSelect=document.getElementById('onlineFaction');
+  for(const opt of factionSelect.options){
+   if(!opt.value)continue;
+   const holder=m.state.players.find(p=>p.faction===opt.value&&p.id!==onlineYou);
+   opt.disabled=!!holder;
+   opt.textContent=holder?`${opt.value} — TAKEN`:`${opt.value} — AVAILABLE`;
+  }
+  factionSelect.value=onlineMine||'';
+  document.getElementById('onlineStart').disabled=m.state.host!==onlineYou||m.state.players.length<2||m.state.players.some(p=>!p.faction);
+  if(m.state.match) await onlineApplyState(m.state,prev);
+  }).catch(err=>console.error('LODU online state processing error',err));
+ };
+}
+async function onlineApplyState(state,prev){
+ const incoming=state.match;
+ if(!onlineStarted){
+  onlineStarted=true;
+  const sels=document.getElementById('playerCount');sels.value=String(state.players.length);sels.dispatchEvent(new Event('change'));
+  const factionSelects=[...document.querySelectorAll('#factionSelects select')];
+  state.players.forEach((p,i)=>{if(factionSelects[i]){factionSelects[i].value=p.faction;const n=document.getElementById(`pn${i+1}`);if(n)n.value=p.name;}});
+  const setup=document.getElementById('setup');setup.style.display='block';
+  document.getElementById('onlineLobby').style.display='none';
+  // Initializes the original board artwork and sound system, without allowing a local game to proceed.
+  document.getElementById('startBtn').click();
+  onlineMode=true;
+  match=incoming;players=incoming.playerOrder.slice();
+  legalMoves=state.roll!==null&&onlineMine===Rules.currentPlayer(match)?state.legalMoves:[];
+  pendingRoll=state.roll;
+  renderDie(state.lastRoll?.face ?? state.roll);refresh();onlineRefreshControls();return;
+ }
+ // Previous server snapshot, not a local prediction, drives all animation.
+ if(isAnimating){while(isAnimating)await new Promise(r=>setTimeout(r,70));}
+ const before=snapshotAll(),oldMatch=match;
+ match=incoming;players=incoming.playerOrder.slice();
+ const oldLogLength=oldMatch?.eventLog?.length||0;
+ const newEvents=incoming.eventLog.slice(oldLogLength);
+ const moved=newEvents.find(x=>x.type==='MOVE'||x.type==='DEPLOY');
+ const kam=newEvents.find(x=>x.type==='KAMIKAZE');
+ isAnimating=true;legalMoves=[];refresh();
+ try{
+  if(moved){
+   const pieceId=moved.pieceId;
+   const piece=match.pieces.find(x=>x.id===pieceId);
+   const oldPiece=before[pieceId];
+   if(piece&&oldPiece){
+    const chosen=Rules.getLegalMoves(oldMatch,piece.owner,prev?.roll).find(x=>x.pieceId===pieceId);
+    if(chosen)await animateApplyMove(piece.owner,chosen,before);
+   }
+   await playShipLossCinematics(shipLossOwners(before));
+   await playHomecomingCinematics(newlyHomeOwners(before));
+  } else if(kam){await animateKamikaze(kam,before);await playShipLossCinematics(shipLossOwners(before));}
+  if(state.lastRoll && state.lastRoll.id!==prev?.lastRoll?.id)await animateDieTumble(state.lastRoll.face);
+ }catch(err){console.warn('Online visual replay skipped',err)}
+ finally{isAnimating=false;match=incoming;pendingRoll=state.roll;lastRolledFace=state.lastRoll?.face ?? state.roll;renderDie(lastRolledFace);legalMoves=state.roll!==null&&onlineMine===Rules.currentPlayer(match)?state.legalMoves:[];refresh();onlineRefreshControls();}
+ if(match.winner){showVictory(match.winner);}
+}
+function onlineRefreshControls(){
+ if(!onlineMode||!match)return;
+ const mine=onlineMine===Rules.currentPlayer(match)&&!match.winner;
+ document.getElementById('rollBtn').disabled=!mine||onlineState?.roll!==null||isAnimating;
+ document.getElementById('kamikazeBtn').disabled=!mine||onlineState?.roll!==null||isAnimating||!Rules.canUseKamikaze(match,onlineMine);
+ document.getElementById('dieCaption').textContent=onlineState?.roll!==null?`Rolled ${onlineState.roll}`:(onlineState?.lastRoll?.noMove?`${onlineState.lastRoll.player} rolled ${onlineState.lastRoll.face} — no legal move`:(mine?'Your turn — roll dice':'Waiting for opponent'));
+}
+document.getElementById('onlineCreate').onclick=()=>onlineSend('create',{name:document.getElementById('onlineName').value||'Host'});
+document.getElementById('onlineJoin').onclick=()=>onlineSend('join',{name:document.getElementById('onlineName').value||'Friend',code:document.getElementById('onlineCode').value.trim()});
+document.getElementById('onlineFaction').onchange=e=>onlineSend('faction',{faction:e.target.value});
+document.getElementById('onlineStart').onclick=()=>onlineSend('start');
+document.getElementById('onlineBack').onclick=()=>{document.getElementById('onlineLobby').style.display='none';document.getElementById('mainMenu').style.display='block'};
+
+/* =========================================================================
+   PHASE G — Splash / Main Menu navigation (presentation-only)
+   This block never touches match/Rules/Board.
+   ========================================================================= */
+(function () {
+  const splash = document.getElementById('splash');
+  const splashVideo = document.getElementById('splashVideo');
+  const splashSkip = document.getElementById('splashSkip');
+  const splashStartHint = document.getElementById('splashStartHint');
+  const mainMenu = document.getElementById('mainMenu');
+  const setupScreen = document.getElementById('setup');
+  const playBtn = document.getElementById('playLoduBtn');
+  const menuCanvas = document.getElementById('menuCanvas');
+
+  let advanced = false;
+  let introStarted = false;
+  const introGate = document.getElementById('introGate');
+  const introEnter = document.getElementById('introEnter');
+
+  function showMainMenu() {
+    if (advanced) return;
+    advanced = true;
+    splash.style.display = 'none';
+    try { splashVideo.pause(); } catch (e) {}
+    mainMenu.style.display = 'block';
+    fitMenuCanvas();
+  }
+
+  function fitMenuCanvas() {
+    const portrait = window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
+    if (portrait) {
+      menuCanvas.style.left = '0px';
+      menuCanvas.style.top = '0px';
+      menuCanvas.style.transform = 'none';
+      return;
+    }
+    const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    menuCanvas.style.left = ((window.innerWidth - 1920 * scale) / 2) + 'px';
+    menuCanvas.style.transform = `scale(${scale})`;
+    menuCanvas.style.top = ((window.innerHeight - 1080 * scale) / 2) + 'px';
+  }
+
+  // Safari blocks unmuted autoplay. A direct click on ENTER is the
+  // intentional playback gesture; no muted autoplay is attempted.
+  function enterLodu() {
+    if (advanced || introStarted) return;
+    introStarted = true;
+    splashVideo.muted = false;
+    splashVideo.defaultMuted = false;
+    splashVideo.volume = 1;
+    splashVideo.currentTime = 0;
+    const playback = splashVideo.play();
+    if (playback && typeof playback.then === 'function') {
+      playback.then(() => {
+        introGate.style.display = 'none';
+        splashStartHint.style.display = 'none';
+      }).catch(() => {
+        introStarted = false;
+        introEnter.textContent = 'TAP TO PLAY INTRO ▶';
+        document.getElementById('introAudioNote').textContent = 'Your browser needs a playback gesture. Try again or SKIP.';
+      });
+    } else {
+      introGate.style.display = 'none';
+    }
+  }
+
+  window.addEventListener('resize', fitMenuCanvas);
+  fitMenuCanvas();
+  introEnter.addEventListener('click', enterLodu);
+  splashVideo.addEventListener('ended', showMainMenu);
+  splashVideo.addEventListener('error', () => {
+    console.warn('LODU splash failed to load; advancing to menu.', splashVideo.error);
+    showMainMenu();
+  });
+  splashSkip.addEventListener('click', showMainMenu);
+  splashSkip.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showMainMenu(); }
+  });
+
+  function openOnlineLobby(flow){
+    mainMenu.style.display='none';
+    document.getElementById('onlineLobby').style.display='block';
+    document.getElementById('onlineEntry').style.display='block';
+    document.getElementById('onlineEntryTitle').textContent=flow==='create'?'INVITE FRIENDS':'JOIN A FRIEND';
+    document.getElementById('onlineJoinFields').style.display=flow==='join'?'block':'none';
+    document.getElementById('onlineCreate').style.display=flow==='create'?'inline-block':'none';
+    document.getElementById('onlineJoin').style.display=flow==='join'?'inline-block':'none';
+    onlineConnect();
+  }
+  document.getElementById('onlineInviteBtn').addEventListener('click',()=>openOnlineLobby('create'));
+  document.getElementById('onlineJoinBtn').addEventListener('click',()=>openOnlineLobby('join'));
+  playBtn.addEventListener('click', () => {
+    mainMenu.style.display = 'none';
+    setupScreen.style.display = 'block';
+  });
+
+  // Living-world particles — cosmetic only.
+  const particleLayer = document.createElement('div');
+  particleLayer.setAttribute('aria-hidden','true');
+  particleLayer.style.cssText = 'position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden;';
+  for (let i = 0; i < 34; i++) {
+    const s = document.createElement('span');
+    s.style.cssText = `position:absolute;left:${Math.random()*100}%;top:${Math.random()*100}%;width:${1+Math.random()*2}px;height:${1+Math.random()*2}px;border-radius:50%;background:rgba(245,220,130,${.15+Math.random()*.35});box-shadow:0 0 8px rgba(245,220,130,.25);animation:menuDust ${8+Math.random()*12}s linear ${Math.random()*8}s infinite;`;
+    particleLayer.appendChild(s);
+  }
+  menuCanvas.appendChild(particleLayer);
+
+  // Very subtle pointer parallax, presentation only.
+  document.addEventListener('mousemove', (e) => {
+    if (mainMenu.style.display !== 'block') return;
+    const x = (e.clientX / window.innerWidth - .5) * 2;
+    const y = (e.clientY / window.innerHeight - .5) * 2;
+    const layer = menuCanvas.querySelectorAll('.commander-slot, .menu-center, .faction-rail');
+    layer.forEach((el, i) => {
+      const depth = i % 3 === 0 ? 5 : (i % 3 === 1 ? 3 : 1.5);
+      el.style.marginLeft = `${x * depth}px`;
+      el.style.marginTop = `${y * depth}px`;
+    });
+  });
+})();
+
+
+/* Quick Rules is a pure presentation overlay: it never calls Rules or mutates match. */
+(function initQuickRules(){
+  const tab=document.getElementById('rulesTab');
+  const overlay=document.getElementById('rulesOverlay');
+  const close=document.getElementById('rulesClose');
+  let previousFocus=null;
+  function showRules(){previousFocus=document.activeElement;overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');close.focus();}
+  function hideRules(){overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');if(previousFocus&&previousFocus.focus)previousFocus.focus();}
+  tab.addEventListener('click',showRules);
+  close.addEventListener('click',hideRules);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)hideRules();});
+  document.addEventListener('keydown',e=>{
+    if(!overlay.classList.contains('open'))return;
+    if(e.key==='Escape'){e.preventDefault();hideRules();}
+    if(e.key==='Tab'){e.preventDefault();close.focus();}
+  });
+})();
+
+</script>
+
+</body>
+</html>

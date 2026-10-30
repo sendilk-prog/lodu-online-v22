@@ -1,0 +1,1 @@
+LODU Stage 13 Harbour Refresh + Quick Rules overlay. No board geometry, engine, audio, movement, harbour or command-panel modifications. Click RULES on left; close with X, Escape or outside click. Overlay remains inside fixed 1920x1080 scaled stage. 12 ivory/gold safe squares, 2 ships + 1 missile, ship/missile captures, Kamikaze blast centered on destination.

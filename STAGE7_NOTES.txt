@@ -1,0 +1,2 @@
+LODU Stage 7 — Battle FX
+Added purely cosmetic wake rings on each hop, impact rings/sparks on captures and Kamikaze, and a brief frame rumble. Reduced-motion preferences disable effects. Rules engine files are unchanged. The approved full battlefield art is NOT yet integrated.

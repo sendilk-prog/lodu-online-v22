@@ -1,0 +1,2 @@
+LODU Stage 13 — Portrait, Panel & 3D Die refinement
+Based on Stage 13 Commander Portrait Edition. Only 3 changes: full-face square portraits from the approved home art; compact no-scroll command panel (battle report scrolls within itself when long); 3D ivory die artwork. Board layout, geometry, engine, turn logic, dice results, battle FX unchanged.

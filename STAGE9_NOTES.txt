@@ -1,0 +1,13 @@
+LODU PHASE 2I — STAGE 9: CINEMATIC SOUND + SHIP IDENTIFICATION
+
+Changes from Stage 8:
+- Intro video now waits for an explicit ENTER LODU click before starting unmuted.
+- SKIP remains available from the first frame, including keyboard activation.
+- If playback is blocked, the user can try ENTER again or skip.
+- Ship tokens now show small gold-rimmed 1 / 2 badges, keyed to each owner's ship order.
+- Fleet command cards retain their corresponding SHIP 1 / SHIP 2 labels.
+- No modifications to board.js, rules.js, or embedded engine.
+
+Tests: 7/7 parity, geometry PASS, 8/8 Stage 4 UI static checks.
+Manual Safari verification required: video audio, badge readability on overlapping ships, intro skip, and battle FX.
+Open LODU_Phase2I.html from the extracted folder with assets/ beside it.

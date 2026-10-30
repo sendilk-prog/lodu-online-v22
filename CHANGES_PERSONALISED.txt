@@ -1,0 +1,5 @@
+LODU Stage 13 Refined — Personalised Commanders + 3D Die
+
+1. Optional names per player during setup. Names are associated with selected faction; original commander names used when blank. Faction-specific ranks shown in command panel, turn banner and victory text.
+2. Replaced die illustration with three-visible-face shaded ivory die. Front pips show actual engine roll; cosmetic tumble remains visual only.
+3. Gameplay engine, board layout, coordinates, effects, and other UI unchanged.

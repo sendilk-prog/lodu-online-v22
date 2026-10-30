@@ -1,0 +1,7 @@
+LODU Phase 2I Stage 4 — Interactive Fleet Command
+
+New: three clickable fleet cards (two ships and one missile) in the command panel. Only cards corresponding to moves returned by Rules.getLegalMoves are enabled; selection calls existing choosePiece. Gameplay stage now scales and centres responsively, matching the confirmed Safari home-screen behaviour. Working main-menu control confirms before discarding match.
+
+Preserved: canonical board.js and rules.js, embedded engine, approved home artwork, splash, existing playable board and animations.
+
+IMPORTANT: Approved gameplay reference illustration is included but NOT yet an accurately mapped interactive background. Current playable board remains the programmatic board. This is an intermediate functional UI checkpoint, not final art integration.

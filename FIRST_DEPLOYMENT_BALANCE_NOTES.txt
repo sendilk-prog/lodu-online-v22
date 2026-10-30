@@ -1,0 +1,5 @@
+LODU First Deployment Balance (experimental)
+
+If another participating faction has ever deployed, a faction with no deployments receives three normal unsuccessful rolls (not 1 or 6) after that first deployment. Subsequent rolls use 25% for 1, 25% for 6, and 12.5% each for 2-5 until that faction deploys its first piece. Each faction can receive this benefit once per match. Standard uniform rolls resume thereafter. All existing rules, animations, and cinematics are unchanged.
+
+Test: node tests_first_deployment_balance.js

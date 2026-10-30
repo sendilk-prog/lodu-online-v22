@@ -1,0 +1,1 @@
+Opening artwork: replaced menu image with approved single-image LODU artwork containing wooden emblem and PLAY. Updated invisible clickable hotspot to the new button position. Removed prior logo overlay. Player-selection artwork, game logic, and victory ceremony unchanged.

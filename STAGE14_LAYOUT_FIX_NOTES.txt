@@ -1,0 +1,1 @@
+Stage 14 ceremony layout fix: corrected fixed-aspect-ratio clipping, fitted logo and buttons inside viewport, added illustrated harbour background behind dynamic board. Game engine, results logic, music and cinematics unchanged.

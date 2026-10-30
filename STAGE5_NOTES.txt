@@ -1,0 +1,7 @@
+LODU Phase 2I Stage 5 — Nautical skin checkpoint
+
+Preserves Stage 4 playable board, coordinate mapping, rules and interactions.
+Adds a richer ocean/wood/gold visual skin to existing board and command panel.
+Adds ART button to compare the locked approved battlefield reference without pretending it is interactive.
+The final illustration is NOT yet converted into a piece-free interactive battlefield.
+Open LODU_Phase2I.html from the extracted folder; keep assets alongside it.

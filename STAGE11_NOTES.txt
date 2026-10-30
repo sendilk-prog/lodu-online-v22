@@ -1,0 +1,2 @@
+LODU Stage 11 — Safe Square combat correction.
+All 12 safe nodes prevent ordinary captures/collisions, including ship vs ship, ship vs missile, missile vs ship, missile vs missile and mixed stacks. Kamikaze bypasses protection and affects all five footprint nodes including safe ones. Canonical source and browser-embedded engine regenerated. Stage 10 preserved.

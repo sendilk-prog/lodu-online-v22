@@ -1,0 +1,13 @@
+LODU Phase 2I Stage 10 — Stone Track / Gilded Console
+
+Starting point: user-verified Stage 9.
+- 64 independent ivory stone perimeter tiles, each derived from Layout.nodePos.
+- 32 independent coloured home-lane tiles, derived from Layout.homePos.
+- Existing deploy anchors, safe markers, home entry indicators remain.
+- Nautical board frame and command console material treatment.
+- No edits to board.js, rules.js, embedded rules or action handlers.
+- Live pieces, numbered ships, battle FX, splash sound preserved.
+
+This is an artwork-guided live-board transformation, NOT yet a pixel-perfect
+reconstruction of the approved illustration. Static ships in the reference
+are deliberately not composited onto the playable board.

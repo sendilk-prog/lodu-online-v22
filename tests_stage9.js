@@ -1,0 +1,12 @@
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const s = fs.readFileSync(__dirname+'/LODU_Phase2I.html','utf8');
+assert(s.includes('id="introEnter"'));
+assert(s.includes("introEnter.addEventListener('click', enterLodu)"));
+assert(s.includes('splashVideo.muted = false'));
+assert(!s.includes('<video id="splashVideo" muted'));
+assert(s.includes('class="ship-number"'));
+assert(s.includes("entry.piece.type === 'SHIP' ? match.pieces.filter"));
+assert(s.includes('renderFleetPicker(player)'));
+console.log('PASS: Stage 9 intro sound and ship identification static checks');

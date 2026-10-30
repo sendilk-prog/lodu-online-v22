@@ -1,0 +1,5 @@
+LODU Stage 13 Turn Indicator + ship-loss cinematics.
+Open LODU_Phase2I.html with the cinematics/ folder alongside it.
+The video belongs to the faction LOSING a SHIP (never a missile-only loss).
+One 16:9 video per affected faction; simultaneous for multiple factions; SKIP available.
+Rules engine untouched.

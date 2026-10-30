@@ -1,0 +1,13 @@
+STAGE 14 — Grand Victory Ceremony integrated
+
+Launch LODU_Phase2I.html in Safari after extracting the complete folder.
+
+- 2 players: first player with both ships HOME wins; other finishes second.
+- 3/4 players: finishing order determined by completing both ships; finished navies skip future turns; last remaining navy automatically takes last place.
+- Each intermediate finish: homecoming cinematic followed by brief placement banner.
+- Last qualifying finish: homecoming cinematic then full-screen podium ceremony with real standings and entered player names.
+- Ceremony artwork and provisional music are stored under ceremony/assets and are replaceable later.
+- The embedded game engine was regenerated from rules.js via node build_embed.js.
+- Original Stage 13 archive remains unchanged.
+- Browser audio autoplay restrictions may require clicking 'Replay + music' on the ceremony screen.
+- Automated tests passed. Manual Safari gameplay/visual validation still required.

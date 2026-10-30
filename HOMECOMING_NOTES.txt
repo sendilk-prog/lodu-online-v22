@@ -1,0 +1,1 @@
+Homecoming cinematics are triggered on actual SHIP transition into HOME, for each faction, including the second ship before victory. Videos retain original 16:9 format. Replace homecoming/<Faction>.mp4 to upgrade films. Existing destruction cinematics remain unchanged.

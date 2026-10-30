@@ -1,0 +1,16 @@
+'use strict';
+const fs=require('fs'),assert=require('assert');
+const game=fs.readFileSync('LODU_Phase2I.html','utf8');
+const ceremony=fs.readFileSync('ceremony/index.html','utf8');
+assert(/const order = match\.finishOrder\.slice\(\)/.test(game),'must derive standings from engine');
+assert(/order\.some\(p => !players\.includes\(p\)\)/.test(game),'must exclude nonparticipants');
+assert(/order\[0\] !== match\.winner/.test(game),'must check actual champion');
+assert(/new Set\(order\)\.size !== order\.length/.test(game),'must reject duplicates');
+assert(/playerName: customCommanderNames\[p\]/.test(game),'must include real player names');
+assert(/lodu-results-ready/.test(game)&&/lodu-results-ready/.test(ceremony),'must handshake iframe');
+assert(/if\(!validate\(event\.data\.standings\)\)/.test(ceremony),'must reject invalid payloads');
+assert(/standings=null/.test(ceremony),'must start without default results');
+assert(!/ceremony_reference\.jpg/.test(ceremony),'must not use fixed-standings art');
+assert(/document\.createElement\('div'\)/.test(ceremony)&&/player\.textContent=r\.playerName/.test(ceremony),'must render names dynamically');
+assert(/function burst\(/.test(ceremony),'must have dynamic fireworks');
+console.log('PASS: results board uses validated real match standings, no baked-in/demo winners, and animated fireworks');

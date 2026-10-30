@@ -1,0 +1,1 @@
+Based on Stage 13 Personalised. Changes ONLY: front-facing one-number die, no perspective/twist during roll, and subtle synthesized movement tap for each animated hop (including returns). Gameplay engine and all other visuals unchanged. Safari audio begins after a player gesture.

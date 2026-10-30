@@ -1,0 +1,1 @@
+Stage 14 results board: no baked-in standings, no default/demo results. Game finishOrder is the sole source. Iframe ready handshake. Fireworks behind dynamic rows. Original game rules and cinematics unchanged.

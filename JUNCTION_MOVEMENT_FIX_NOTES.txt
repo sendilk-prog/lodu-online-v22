@@ -1,0 +1,25 @@
+LODU — Junction Movement Fix (14 October 2026)
+
+The four faction-coloured outermost home-lane squares now count as ordinary
+shared perimeter steps for both ships and missiles:
+  North junction (top): node 68
+  East junction (right): node 17
+  South junction (bottom): node 34
+  West junction (left): node 51
+
+The full shared track is now 68 steps, including these four junctions.
+The owner of a junction enters its own private home lane on the NEXT step.
+The visible coloured junction squares and all existing artwork remain intact.
+The eight gold-orb safe squares and four starting safe squares remain unchanged.
+The four junctions are not safe.
+
+The home path consists of 68 shared steps from deployment through the owner's
+junction, seven remaining private home-lane tiles, then the HOME destination.
+Missiles continue around the 68-step shared perimeter and never enter HOME.
+
+This is a topology correction, not merely an animation adjustment. Existing
+saves or match states with numeric relative distances from older builds should
+not be imported into this build without migration.
+
+Tests: node tests_junction_steps.js; node tests_first_deployment_balance.js;
+node tests_embedded_parity.js; node tests_stage11_safe.js.

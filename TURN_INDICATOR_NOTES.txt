@@ -1,0 +1,1 @@
+Turn indicator: Commander profile background and border now match current faction; two 0.6-second brightness/glow pulses on player change (including first turn). Does not pulse on routine rerenders or extra turns. Reduced-motion preference respected. Gameplay engine untouched.

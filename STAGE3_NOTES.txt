@@ -1,0 +1,9 @@
+LODU Phase 2I Stage 3 — Board geometry checkpoint
+
+Changes: visual deploy markers are anchors, home-entry nodes use lighter owner colours (no anchor); read-only geometry audit accessible from Safari developer console: LODU_auditBoardCoordinates().
+
+Preserved: original rules.js, board.js, gameplay flow, approved home artwork, Stage 2 responsive scaling.
+
+Verified: 64 unique perimeter coordinates, 32 home lane positions, 12 safe nodes, 4 entry/deploy relationships, embedded engine parity tests.
+
+NOT YET COMPLETE: approved gameplay illustration is supplied as a reference asset but is not yet used as a functional board. Precise alignment and integration of interactive tokens with the approved artwork require a separate calibrated board layer. This build remains playable with the earlier programmatic board.

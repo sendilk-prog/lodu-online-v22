@@ -1,0 +1,9 @@
+LODU Phase 2I — Stage 6 | Single live battlefield checkpoint
+
+- Removed the static ART preview button and modal; there is only one game board.
+- All ships and missiles continue to be rendered dynamically from live match state.
+- Approved artwork contributes decorative ocean texture only, without baked-in ships.
+- Strengthened nautical framing; engine and canonical coordinates remain unchanged.
+- This is NOT yet a pixel-perfect reproduction of the approved battlefield.
+  Its perspective illustration cannot simply be substituted for the coordinate-accurate board.
+- Next: asset separation / rebuilding the exact approved board as gameplay-aligned layers.
