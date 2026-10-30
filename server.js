@@ -7,7 +7,7 @@ const rooms=new Map(), F=Board.PLAYERS;
 const send=(ws,data)=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data));};
 const token=()=>crypto.randomBytes(20).toString('hex');
 const code=()=>String(crypto.randomInt(0,1000000)).padStart(6,'0');
-function roomState(r){return {code:r.code,phase:r.phase,host:r.host,players:r.players.map(p=>({id:p.id,name:p.name,faction:p.faction,connected:!!p.ws&&p.ws.readyState===WebSocket.OPEN})),match:r.match,roll:r.roll,lastRoll:r.lastRoll,legalMoves:r.legalMoves,version:r.version};}
+function roomState(r){return {code:r.code,phase:r.phase,host:r.host,players:r.players.map(p=>({id:p.id,name:p.name,faction:p.faction,connected:!!p.ws&&p.ws.readyState===WebSocket.OPEN})),match:r.match,roll:r.roll,lastRoll:r.lastRoll,legalMoves:r.legalMoves,turnPending:!!r.turnPending,version:r.version};}
 function publish(r){r.version++;for(const p of r.players)if(p.ws)send(p.ws,{type:'state',state:roomState(r),you:p.id,token:p.token});}
 function fail(ws,msg){send(ws,{type:'error',message:msg});}
 function findPlayer(ws){for(const r of rooms.values()){const p=r.players.find(p=>p.ws===ws);if(p)return {r,p};}return null;}
@@ -18,7 +18,7 @@ function action(ws,m){
   if(found)return fail(ws,'Already in a room');
   let c;do{c=code()}while(rooms.has(c));
   const p={id:crypto.randomUUID(),token:token(),name:String(m.name||'Host').slice(0,24),faction:null,ws};
-  const r={code:c,host:p.id,players:[p],phase:'lobby',match:null,roll:null,lastRoll:null,rollSerial:0,legalMoves:[],version:0};
+  const r={code:c,host:p.id,players:[p],phase:'lobby',match:null,roll:null,lastRoll:null,rollSerial:0,turnPending:false,legalMoves:[],version:0};
   rooms.set(c,r);publish(r);return;
  }
  if(m.type==='join'){
@@ -46,11 +46,12 @@ function action(ws,m){
  if(m.type==='start'){
   if(p.id!==r.host)return fail(ws,'Only the host can start');
   if(r.phase!=='lobby'||r.players.length<2||r.players.some(x=>!x.faction))return fail(ws,'Need 2–4 players with unique factions');
-  r.match=Rules.createMatch(r.players.map(x=>x.faction));r.phase='playing';r.lastRoll=null;r.rollSerial=0;publish(r);return;
+  r.match=Rules.createMatch(r.players.map(x=>x.faction));r.phase='playing';r.lastRoll=null;r.rollSerial=0;r.turnPending=false;publish(r);return;
  }
  if(r.phase!=='playing')return fail(ws,'Game not started');
  if(Rules.currentPlayer(r.match)!==p.faction)return fail(ws,'Not your turn');
  if(r.match.winner)return fail(ws,'Game finished');
+ if(r.turnPending)return fail(ws,'Waiting for dice result to settle');
  if(m.type==='roll'){
   if(r.roll!==null)return fail(ws,'Choose a move first');
   const roll=crypto.randomInt(1,7);
@@ -58,7 +59,17 @@ function action(ws,m){
   r.roll=roll;
   r.legalMoves=reg.forfeited?[]:Rules.getLegalMoves(r.match,p.faction,roll);
   r.lastRoll={id:++r.rollSerial,face:roll,player:p.faction,noMove:!!(reg.forfeited||!r.legalMoves.length)};
-  if(r.lastRoll.noMove){next(r);}
+  if(r.lastRoll.noMove){
+   // Publish the actual roll before advancing the turn. Keep the current
+   // commander active while both clients finish their dice animation.
+   r.roll=null;r.legalMoves=[];r.turnPending=true;
+   publish(r);
+   setTimeout(()=>{
+    if(r.phase!=='playing'||!r.turnPending)return;
+    next(r);r.turnPending=false;publish(r);
+   },1900);
+   return;
+  }
   publish(r);return;
  }
  if(m.type==='move'){

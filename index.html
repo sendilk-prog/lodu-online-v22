@@ -2987,7 +2987,7 @@ async function onlineApplyState(state,prev){
 }
 function onlineRefreshControls(){
  if(!onlineMode||!match)return;
- const mine=onlineMine===Rules.currentPlayer(match)&&!match.winner;
+ const mine=onlineMine===Rules.currentPlayer(match)&&!match.winner&&!onlineState?.turnPending;
  document.getElementById('rollBtn').disabled=!mine||onlineState?.roll!==null||isAnimating;
  document.getElementById('kamikazeBtn').disabled=!mine||onlineState?.roll!==null||isAnimating||!Rules.canUseKamikaze(match,onlineMine);
  document.getElementById('dieCaption').textContent=onlineState?.roll!==null?`Rolled ${onlineState.roll}`:(onlineState?.lastRoll?.noMove?`${onlineState.lastRoll.player} rolled ${onlineState.lastRoll.face} — no legal move`:(mine?'Your turn — roll dice':'Waiting for opponent'));
